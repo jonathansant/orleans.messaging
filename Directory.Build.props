@@ -1,0 +1,54 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- Set the repository root into a variable -->
+  <PropertyGroup>
+    <SourceRoot>$(MSBuildThisFileDirectory)</SourceRoot>
+  </PropertyGroup>
+
+  <!-- Set common properties regarding assembly information and nuget packages -->
+  <PropertyGroup>
+    <Authors>River Tech</Authors>
+    <Company>River Tech</Company>
+    <Product>Odin</Product>
+    <Copyright>© River Tech. All rights reserved.</Copyright>
+    <!-- todo: add license https://github.com/NuGet/Home/wiki/Packaging-License-within-the-nupkg-(Technical-Spec)
+       <PackageLicenseUrl>https://github.com/River-iGaming/odin.layerzero#license</PackageLicenseUrl> -->
+    <PackageProjectUrl>https://github.com/River-iGaming/odin.layerzero</PackageProjectUrl>
+    <PackageIcon>package-icon.png</PackageIcon>
+    <PackageTags>Odin Core C# .NET</PackageTags>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/River-iGaming/odin.layerzero</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- Note: quite nice to have but since we dont really use, they will simply slow down CI
+    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource> -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    <!-- <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile> -->
+  </PropertyGroup>
+
+  <!-- Common compile parameters -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);1701;1702;1705;1591</NoWarn>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <NoWarn Condition="'$(MSBuildProjectFile)' == '*.g.cs'">$(NoWarn);CS0618</NoWarn>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(PackageVersion)' != ''">
+      <_Parameter1>PackageVersion</_Parameter1>
+      <_Parameter2>$(PackageVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <None Include="$(SourceRoot)assets/package-icon.png" Pack="true" Visible="false" PackagePath="/"/>
+  </ItemGroup>
+</Project>

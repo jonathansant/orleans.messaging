@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Logging library that uses Serilog.</Description>
+    <PackageTags>$(PackageTags) logging serilog</PackageTags>
+  </PropertyGroup>
+
+  <!-- vendor packages -->
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.CloudWatchLogs" />
+    <PackageReference Include="Destructurama.Attributed" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Extensions.Logging" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
+    <PackageReference Include="Serilog.Sinks.Async" />
+    <PackageReference Include="Serilog.Sinks.AwsCloudWatch" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.Elasticsearch" />
+  </ItemGroup>
+
+  <!-- packages -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+  </ItemGroup>
+
+  <!-- libraries -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+  </ItemGroup>
+
+  <!-- src libraries -->
+  <ItemGroup>
+    <ProjectReference Include="..\Odin.Core\Odin.Core.csproj" />
+  </ItemGroup>
+
+</Project>

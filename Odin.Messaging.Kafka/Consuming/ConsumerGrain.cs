@@ -5,8 +5,6 @@ using Odin.Messaging.Kafka.Producing;
 using Odin.Messaging.Kafka.Serialization;
 using Odin.Messaging.SerDes;
 using Odin.Messaging.Subscription;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
 using Orleans.Concurrency;
 using System.Collections.Immutable;
 using System.Collections.Specialized;
@@ -31,8 +29,7 @@ public interface IConsumerGrain : IGrainWithStringKey
 	ValueTask Rebalance();
 }
 
-[SharedTenant]
-public sealed class ConsumerGrain : OdinGrain, IConsumerGrain
+public sealed class ConsumerGrain : Grain, IConsumerGrain
 {
 	private Type _dlqProducerGrainByteType;
 	private readonly ConsumerGrainKey _keyData;
@@ -55,13 +52,12 @@ public sealed class ConsumerGrain : OdinGrain, IConsumerGrain
 
 	public ConsumerGrain(
 		ILogger<ConsumerGrain> logger,
-		ILoggingContext loggingContext,
 		IPersistentStateFactory persistentStateFactory,
 		IGrainContext grainContext,
 		IOptionsMonitor<OdinMessagingKafkaOptions> optionsMonitor,
 		IOdinDigestingUtilityServiceFactory digestingServiceFactory,
 		IServiceProvider serviceProvider
-	) : base(logger, loggingContext)
+	) : base(grainContext)
 	{
 		_logger = logger;
 		_keyData = this.ParseKey<ConsumerGrainKey>(ConsumerGrainKey.Template);
@@ -75,9 +71,9 @@ public sealed class ConsumerGrain : OdinGrain, IConsumerGrain
 		);
 	}
 
-	public override async Task OnOdinActivate()
+	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
-		await base.OnOdinActivate();
+		await base.OnActivateAsync(cancellationToken);
 		_topicConfig = _options.Topics.FindFirst(x => _keyData.TopicId == x.Name);
 		_messageSerializer = _serializerResolver.Resolve(_keyData.TopicId);
 		_shouldKeepBytePayload = _runtimeOptionsService.IsBytePayload(_topicConfig.Name);
@@ -193,12 +189,12 @@ public sealed class ConsumerGrain : OdinGrain, IConsumerGrain
 			await HandleProcessingError(failedMessages.Values.Cast<OdinMessage<byte[]>>().ToList());
 	}
 
-	public override Task OnOdinDeactivate()
+	public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
 	{
 		_consumer.Close();
 		_consumer.Dispose();
 
-		return base.OnOdinDeactivate();
+		await base.OnDeactivateAsync(reason, cancellationToken);
 	}
 
 	private async Task ReloadSubscriptions()

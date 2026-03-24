@@ -1,8 +1,7 @@
-using Odin.Core.FlowControl;
 using Odin.Messaging.Accessors;
 using Odin.Messaging.Config;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
+using Odin.Messaging.FlowControl;
+using Odin.Messaging.Utils;
 using Orleans.Concurrency;
 
 namespace Odin.Messaging.Subscription;
@@ -31,9 +30,9 @@ public interface ISubscriptionIndexGrain : IGrainWithStringKey
 	Task Unregister(string key);
 }
 
-[SharedTenant]
-public class SubscriptionIndexGrain : OdinGrain, ISubscriptionIndexGrain
+public class SubscriptionIndexGrain : Grain, ISubscriptionIndexGrain
 {
+	private readonly ILogger<SubscriptionIndexGrain> _logger;
 	private readonly IConsumerAccessor _consumerAccessor;
 	private readonly IPersistentState<SubscriptionIndexGrainState> _store;
 
@@ -43,12 +42,12 @@ public class SubscriptionIndexGrain : OdinGrain, ISubscriptionIndexGrain
 
 	public SubscriptionIndexGrain(
 		ILogger<SubscriptionIndexGrain> logger,
-		ILoggingContext loggingContext,
 		IPersistentStateFactory persistentStateFactory,
 		IGrainContext grainContext,
 		IServiceProvider serviceProvider
-	) : base(logger, loggingContext)
+	)
 	{
+		_logger = logger;
 		_key = this.ParseKey<SubscriptionIndexGrainKey>(SubscriptionIndexGrainKey.Template);
 
 		_consumerAccessor = serviceProvider.GetRequiredKeyedService<IConsumerAccessor>(_key.ServiceKey);
@@ -100,10 +99,10 @@ public class SubscriptionIndexGrain : OdinGrain, ISubscriptionIndexGrain
 		await RefreshConsumerSubscriptionList();
 	}
 
-	public override async Task OnOdinDeactivate()
+	public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
 	{
-		await base.OnOdinDeactivate();
 		await _writeThrottledAction.DisposeAsync();
+		await base.OnDeactivateAsync(reason, cancellationToken);
 	}
 
 	private Task RefreshConsumerSubscriptionList()
@@ -115,7 +114,7 @@ public class SubscriptionIndexGrain : OdinGrain, ISubscriptionIndexGrain
 				}
 				catch (OrleansMessageRejectionException ex)
 				{
-					Logger.LogDebug(
+					_logger.LogDebug(
 						"Failed to refresh consumer subscription list for consumer {ServiceKey} {Queue} {Partition}, Message - {message}",
 						x.serviceKey,
 						x.queue,

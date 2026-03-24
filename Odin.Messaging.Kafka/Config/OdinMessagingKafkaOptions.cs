@@ -1,4 +1,4 @@
-using Odin.Core.FlowControl;
+using Odin.Messaging.FlowControl;
 using Odin.Messaging.Config;
 
 namespace Odin.Messaging.Kafka.Config;

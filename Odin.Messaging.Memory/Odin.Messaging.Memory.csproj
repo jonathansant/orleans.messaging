@@ -16,7 +16,6 @@
   <!-- src libraries -->
   <ItemGroup>
     <ProjectReference Include="..\Odin.Messaging\Odin.Messaging.csproj" />
-    <ProjectReference Include="..\Odin.Orleans.Core\Odin.Orleans.Core.csproj" />
   </ItemGroup>
 
 </Project>

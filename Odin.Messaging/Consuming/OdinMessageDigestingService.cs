@@ -1,4 +1,5 @@
 using Odin.Messaging.Subscription;
+using Odin.Messaging.Utils;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using GrainFactoryExtensions = Odin.Messaging.Subscription.GrainFactoryExtensions;
@@ -66,7 +67,8 @@ internal class OdinDigestingUtilityService(
 		_subscriptionRegexes.Clear();
 
 		_subscriptionTable = subscriptionTable;
-		_subscriptionRegexes.AddRange(_subscriptionTable.ToDictionary(x => x.Key, x => new Regex(x.Key, RegexOptions.Compiled)));
+		foreach (var kvp in _subscriptionTable)
+			_subscriptionRegexes.TryAdd(kvp.Key, new Regex(kvp.Key, RegexOptions.Compiled));
 	}
 
 	public ISubscriptionGrain GetSubscriptionGrain(string queue, string subscriptionKey)

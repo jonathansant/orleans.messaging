@@ -1,4 +1,4 @@
-using Odin.Core.FlowControl;
+using Odin.Messaging.FlowControl;
 using Odin.Messaging.Kafka.Config;
 using Orleans.Runtime.Services;
 using Orleans.Services;

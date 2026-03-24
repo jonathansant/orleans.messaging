@@ -2,8 +2,6 @@ using Odin.Messaging.Consuming;
 using Odin.Messaging.Memory.Config;
 using Odin.Messaging.Memory.Utilities;
 using Odin.Messaging.Subscription;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
 using Orleans.Concurrency;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -27,7 +25,7 @@ public static partial class GrainFactoryExtensions
 		=> $"odinMessagingMemoryProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}";
 }
 
-public interface IMemoryProducerGrain : IOdinGrainContract, IGrainWithStringKey
+public interface IMemoryProducerGrain : IMessagingGrainContract, IGrainWithStringKey
 {
 	Task Produce(Immutable<OdinMessage> message);
 
@@ -39,8 +37,7 @@ public interface IMemoryProducerGrain<TMessage> : IMemoryProducerGrain
 	Task Produce(Immutable<OdinMessage<TMessage>> message);
 }
 
-[SharedTenant]
-public class MemoryProducerGrain<TMessage> : OdinGrain, IMemoryProducerGrain<TMessage>
+public class MemoryProducerGrain<TMessage> : Grain, IMemoryProducerGrain<TMessage>
 {
 	private readonly ILogger<MemoryProducerGrain<TMessage>> _logger;
 	private readonly IGrainFactory _grainFactory;
@@ -51,19 +48,18 @@ public class MemoryProducerGrain<TMessage> : OdinGrain, IMemoryProducerGrain<TMe
 
 	private static readonly Type MessageType = typeof(TMessage);
 	private readonly IPersistentState<MemoryProducerGrainState> _store;
-	private IDisposable _timer;
+	private IGrainTimer _timer;
 	private readonly IMessagingMemoryRuntimeOptionsService _runtimeOptionsService;
 
 	public MemoryProducerGrain(
 		ILogger<MemoryProducerGrain<TMessage>> logger,
-		ILoggingContext loggingContext,
 		IOptionsMonitor<OdinMessagingMemoryOptions> optionsMonitor,
 		IServiceProvider serviceProvider,
 		IGrainContext grainContext,
 		IPersistentStateFactory persistentStateFactory,
 		IGrainFactory grainFactory,
 		IOdinDigestingUtilityServiceFactory digestingUtilityServiceFactory
-	) : base(logger, loggingContext)
+	) : base(grainContext)
 	{
 		_key = this.ParseKey<MemoryProducerGrainKey>(MemoryProducerGrainKey.Template);
 		_key.PartitioningKey = HttpUtility.UrlDecode(_key.PartitioningKey);
@@ -82,9 +78,12 @@ public class MemoryProducerGrain<TMessage> : OdinGrain, IMemoryProducerGrain<TMe
 		);
 	}
 
-	public override async Task OnOdinActivate()
+	public Task Activate() => Task.CompletedTask;
+	public Task ActivateOneWay() => Task.CompletedTask;
+
+	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
-		await base.OnOdinActivate();
+		await base.OnActivateAsync(cancellationToken);
 
 		_runtimeOptionsService.RegisterQueueType(_key.QueueName, MessageType);
 
@@ -93,12 +92,15 @@ public class MemoryProducerGrain<TMessage> : OdinGrain, IMemoryProducerGrain<TMe
 
 		_digestingUtilityService.UpdateCache(subscriptions);
 
-		_timer = (this as IOdinGrain).RegisterTimer(
+		_timer = this.RegisterGrainTimer(
 			async _ => await ProduceToSubscriptions(),
-			null,
-			TimeSpan.FromMilliseconds(_options.ProduceInitDelayMs),
-			TimeSpan.FromMilliseconds(_options.ProducePollRateMs),
-			isInterleave: false
+			(object)null,
+			new GrainTimerCreationOptions
+			{
+				DueTime = TimeSpan.FromMilliseconds(_options.ProduceInitDelayMs),
+				Period = TimeSpan.FromMilliseconds(_options.ProducePollRateMs),
+				Interleave = false
+			}
 		);
 	}
 
@@ -127,13 +129,14 @@ public class MemoryProducerGrain<TMessage> : OdinGrain, IMemoryProducerGrain<TMe
 		return ValueTask.CompletedTask;
 	}
 
-	public override async Task OnOdinDeactivate()
+	public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
 	{
-		await base.OnOdinDeactivate();
 		_timer.Dispose();
 
 		if (!_store.State.MessageQueue.IsNullOrEmpty())
 			await ProduceToSubscriptions();
+
+		await base.OnDeactivateAsync(reason, cancellationToken);
 	}
 
 	private async Task ProduceToSubscriptions()

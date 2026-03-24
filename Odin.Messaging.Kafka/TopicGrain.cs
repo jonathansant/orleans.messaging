@@ -1,8 +1,6 @@
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Odin.Messaging.Kafka.Config;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 
@@ -24,13 +22,12 @@ public record struct TopicKey
 	public string ServiceKey { get; set; }
 }
 
-public interface ITopicGrain : IOdinGrainContract, IGrainWithStringKey
+public interface ITopicGrain : IMessagingGrainContract, IGrainWithStringKey
 {
 	ValueTask<ImmutableList<TopicMetadata>> GetBrokerTopics();
 }
 
-[SharedTenant]
-public class TopicGrain : OdinGrain, ITopicGrain
+public class TopicGrain : Grain, ITopicGrain
 {
 	private readonly TopicKey _keyData;
 	private readonly OdinMessagingKafkaOptions _options;
@@ -39,12 +36,11 @@ public class TopicGrain : OdinGrain, ITopicGrain
 
 	public TopicGrain(
 		ILogger<TopicGrain> logger,
-		ILoggingContext loggingContext,
 		IPersistentStateFactory persistentStateFactory,
 		IGrainContext grainContext,
 		IOptionsMonitor<OdinMessagingKafkaOptions> optionsMonitor,
 		IServiceProvider serviceProvider
-	) : base(logger, loggingContext)
+	) : base(grainContext)
 	{
 		_keyData = this.ParseKey<TopicKey>(TopicKey.Template);
 		_options = optionsMonitor.Get(_keyData.ServiceKey);
@@ -56,9 +52,12 @@ public class TopicGrain : OdinGrain, ITopicGrain
 		);
 	}
 
-	public override async Task OnOdinActivate()
+	public Task Activate() => Task.CompletedTask;
+	public Task ActivateOneWay() => Task.CompletedTask;
+
+	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
-		await base.OnOdinActivate();
+		await base.OnActivateAsync(cancellationToken);
 		await Initialize();
 	}
 

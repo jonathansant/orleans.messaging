@@ -1,10 +1,8 @@
 using Confluent.Kafka;
-using Odin.Core.FlowControl;
+using Odin.Messaging.FlowControl;
 using Odin.Messaging.Kafka.Config;
 using Odin.Messaging.Kafka.Serialization;
 using Odin.Messaging.SerDes;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
 using Orleans.Concurrency;
 using System.Text;
 using System.Web;
@@ -35,7 +33,7 @@ public static partial class GrainFactoryExtensions
 		=> $"odinMessagingKafkaProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}/{(isDlq ? "dlq" : "standard")}";
 }
 
-public interface IProducerGrain : IOdinGrainContract, IGrainWithStringKey
+public interface IProducerGrain : IMessagingGrainContract, IGrainWithStringKey
 {
 	Task Produce(Immutable<OdinMessage> message);
 }
@@ -45,8 +43,7 @@ public interface IKafkaProducerGrain<TMessage> : IProducerGrain
 	Task Produce(Immutable<OdinMessage<TMessage>> message);
 }
 
-[SharedTenant]
-public class KafkaProducerGrain<TMessage> : OdinGrain, IKafkaProducerGrain<TMessage>
+public class KafkaProducerGrain<TMessage> : Grain, IKafkaProducerGrain<TMessage>
 {
 	private readonly ILogger<KafkaProducerGrain<TMessage>> _logger;
 	private readonly OdinMessagingKafkaOptions _options;
@@ -64,10 +61,9 @@ public class KafkaProducerGrain<TMessage> : OdinGrain, IKafkaProducerGrain<TMess
 
 	public KafkaProducerGrain(
 		ILogger<KafkaProducerGrain<TMessage>> logger,
-		ILoggingContext loggingContext,
 		IOptionsMonitor<OdinMessagingKafkaOptions> optionsMonitor,
 		IServiceProvider serviceProvider
-	) : base(logger, loggingContext)
+	)
 	{
 		_key = this.ParseKey<KafkaProducerGrainKey>(KafkaProducerGrainKey.Template);
 		_key.PartitioningKey = HttpUtility.UrlDecode(_key.PartitioningKey);
@@ -94,9 +90,12 @@ public class KafkaProducerGrain<TMessage> : OdinGrain, IKafkaProducerGrain<TMess
 		);
 	}
 
-	public override async Task OnOdinActivate()
+	public Task Activate() => Task.CompletedTask;
+	public Task ActivateOneWay() => Task.CompletedTask;
+
+	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
-		await base.OnOdinActivate();
+		await base.OnActivateAsync(cancellationToken);
 
 		if (_key.ProducerType == ProducerType.Standard)
 		{
@@ -217,10 +216,10 @@ public class KafkaProducerGrain<TMessage> : OdinGrain, IKafkaProducerGrain<TMess
 		);
 	}
 
-	public override async Task OnOdinDeactivate()
+	public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
 	{
-		await base.OnOdinDeactivate();
 		await _debounceDeactivate.DisposeAsync();
+		await base.OnDeactivateAsync(reason, cancellationToken);
 	}
 
 	private static Headers ToHeaders(Dictionary<string, string> headers)

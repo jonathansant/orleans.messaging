@@ -1,7 +1,6 @@
-using Odin.Core.FlowControl;
 using Odin.Messaging.Config;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
+using Odin.Messaging.FlowControl;
+using Odin.Messaging.Utils;
 using Orleans.Concurrency;
 using System.Collections.Immutable;
 using System.Web;
@@ -21,7 +20,7 @@ public static partial class GrainFactoryExtensions
 		=> $"odinMessagingSubscription/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(pattern)}";
 }
 
-public interface ISubscriptionGrain : IOdinGrainContract, IGrainWithStringKey
+public interface ISubscriptionGrain : IGrainWithStringKey
 {
 	[OneWay]
 	Task PushOneWay(ImmutableList<OdinMessage> batch);
@@ -43,23 +42,24 @@ public interface ISubscriptionGrain<TMessage> : ISubscriptionGrain
 {
 }
 
-[SharedTenant]
-public class SubscriptionGrain<TMessage> : OdinGrain, ISubscriptionGrain<TMessage>
+public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 {
 	private readonly ILogger<SubscriptionGrain<TMessage>> _logger;
 	private readonly IPersistentState<SubscriptionGrainState> _store;
 	private readonly SubscriptionGrainKey _key;
 	private readonly Dictionary<string, MethodInfo> _subscriptionMethods = new();
-	private readonly ScheduledThrottledAction _writeThrottledAction;
 	private readonly OdinMessagingOptions _options;
+	private string? _primaryKey;
+	private string PrimaryKey => _primaryKey ??= this.GetPrimaryKeyAny();
+
+	private readonly ScheduledThrottledAction _writeThrottledAction;
 
 	public SubscriptionGrain(
 		ILogger<SubscriptionGrain<TMessage>> logger,
-		ILoggingContext loggingContext,
 		IPersistentStateFactory persistentStateFactory,
 		IGrainContext grainContext,
 		IServiceProvider serviceProvider
-	) : base(logger, loggingContext)
+	) : base(grainContext)
 	{
 		_logger = logger;
 
@@ -93,7 +93,7 @@ public class SubscriptionGrain<TMessage> : OdinGrain, ISubscriptionGrain<TMessag
 		var messageIds = batch.Select(x => x.MessageId).ToList();
 		var joinedIds = string.Join(',', messageIds);
 
-		Logger.ReceivedMessageBatch(_key.Pattern, _key.QueueName, joinedIds);
+		_logger.ReceivedMessageBatch(_key.Pattern, _key.QueueName, joinedIds);
 
 		var messageBatch = batch.Cast<OdinMessage<TMessage>>().ToImmutableList();
 		var isFaulted = false;
@@ -216,10 +216,10 @@ public class SubscriptionGrain<TMessage> : OdinGrain, ISubscriptionGrain<TMessag
 			await GrainFactory.GetSubscriptionIndexGrain(_key.ServiceKey, _key.QueueName).Unregister(_key.Pattern);
 	}
 
-	public override async Task OnOdinDeactivate()
+	public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
 	{
-		await base.OnOdinDeactivate();
 		await _writeThrottledAction.DisposeAsync();
+		await base.OnDeactivateAsync(reason, cancellationToken);
 	}
 
 	private (string key, IGrain grain) CreateGrainReference(SubscriptionMeta subscriptionMeta)

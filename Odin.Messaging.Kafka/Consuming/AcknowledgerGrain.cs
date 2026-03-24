@@ -1,7 +1,5 @@
 using Confluent.Kafka;
 using Odin.Messaging.Kafka.Config;
-using Odin.Orleans.Core;
-using Odin.Orleans.Core.Tenancy;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -18,8 +16,7 @@ public interface IAcknowledgerGrain : IGrainWithStringKey
 	ValueTask Acknowledge(ImmutableList<AckRequest> ackRequests);
 }
 
-[SharedTenant]
-public class AcknowledgerGrain : OdinGrain, IAcknowledgerGrain
+public class AcknowledgerGrain : Grain, IAcknowledgerGrain
 {
 	private readonly ILogger<AcknowledgerGrain> _logger;
 	private readonly OdinMessagingKafkaOptions _options;
@@ -29,9 +26,8 @@ public class AcknowledgerGrain : OdinGrain, IAcknowledgerGrain
 
 	public AcknowledgerGrain(
 		ILogger<AcknowledgerGrain> logger,
-		ILoggingContext loggingContext,
 		IOptionsMonitor<OdinMessagingKafkaOptions> optionsMonitor
-	) : base(logger, loggingContext)
+	)
 	{
 		_logger = logger;
 		_keyData = this.ParseKey<AcknowledgerGrainKey>(AcknowledgerGrainKey.Template);
@@ -39,9 +35,9 @@ public class AcknowledgerGrain : OdinGrain, IAcknowledgerGrain
 		_topicConfig = _options.Topics.FindFirst(x => _keyData.TopicId == x.Name);
 	}
 
-	public override async Task OnOdinActivate()
+	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
-		await base.OnOdinActivate();
+		await base.OnActivateAsync(cancellationToken);
 		AssignToPartition();
 	}
 

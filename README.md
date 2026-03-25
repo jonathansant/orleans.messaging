@@ -56,9 +56,9 @@ Run multiple independent broker instances side by side using `MessageBrokerNames
 ```csharp
 public static class MessageBrokerNames
 {
-    public const string Platform   = "messageBroker";        // default
-    public const string Bifrost    = "bifrostMessageBroker";
-    public const string JobScheduler = "jobSchedulerMessageBroker";
+    public const string DefaultBroker   = "messageBroker";        // default
+    public const string Conduit    = "conduitMessageBroker";
+    public const string IronwoodRelay = "ironwoodRelayMessageBroker";
     // ...
 }
 ```
@@ -66,7 +66,7 @@ public static class MessageBrokerNames
 Resolve the right client via keyed DI:
 
 ```csharp
-var client = serviceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
+var client = serviceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 ```
 
 ## Provider READMEs

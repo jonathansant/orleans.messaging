@@ -8,7 +8,7 @@ namespace Orleans.Messaging.Kafka.Consuming;
 public static partial class GrainFactoryExtensions
 {
 	public static IAcknowledgerGrain GetAcknowledgerGrain(this IGrainFactory grainFactory, string serviceKey, string topic, string partition)
-		=> grainFactory.GetGrain<IAcknowledgerGrain>($"odinKafkaAcknowledgerGrain/{serviceKey}/{topic}/{partition}");
+		=> grainFactory.GetGrain<IAcknowledgerGrain>($"orleansKafkaAcknowledgerGrain/{serviceKey}/{topic}/{partition}");
 }
 
 public interface IAcknowledgerGrain : IGrainWithStringKey
@@ -82,7 +82,7 @@ public struct AcknowledgerGrainKey
 {
 	private string DebuggerDisplay => $"ServiceKey: '{ServiceKey}', TopicId: '{TopicId}', Partition: '{Partition}'";
 
-	public const string Template = "odinKafkaAcknowledgerGrain/{serviceKey}/{topicId}/{partition}";
+	public const string Template = "orleansKafkaAcknowledgerGrain/{serviceKey}/{topicId}/{partition}";
 	public string TopicId { get; set; }
 	public string Partition { get; set; }
 	public string ServiceKey { get; set; }

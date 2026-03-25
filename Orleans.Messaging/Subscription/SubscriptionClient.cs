@@ -185,7 +185,7 @@ public enum PatternType
 	Substring,
 }
 
-/// <param name="ServiceKey">e.g. Bifrost, External (<see cref="MessageBrokerNames"/>)</param>
+/// <param name="ServiceKey">e.g. Default, External (<see cref="MessageBrokerNames"/>)</param>
 public record TopicSubscription(
 	string ServiceKey,
 	string SubscriptionId,

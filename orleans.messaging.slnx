@@ -3,6 +3,7 @@
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
   </Folder>
   <Project Path="Orleans.Messaging.Kafka/Orleans.Messaging.Kafka.csproj" />
   <Project Path="Orleans.Messaging.Memory/Orleans.Messaging.Memory.csproj" />

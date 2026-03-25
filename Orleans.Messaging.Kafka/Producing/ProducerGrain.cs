@@ -30,7 +30,7 @@ public static partial class GrainFactoryExtensions
 	);
 
 	public static string GenerateProducerGrainKey(string serviceKey, string queueName, string partitioningKey, bool isDlq)
-		=> $"odinMessagingKafkaProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}/{(isDlq ? "dlq" : "standard")}";
+		=> $"orleansMessagingKafkaProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}/{(isDlq ? "dlq" : "standard")}";
 }
 
 public interface IProducerGrain : IMessagingGrainContract, IGrainWithStringKey
@@ -237,7 +237,7 @@ public class KafkaProducerGrain<TMessage> : Grain, IKafkaProducerGrain<TMessage>
 
 public struct KafkaProducerGrainKey
 {
-	public const string Template = "odinMessagingKafkaProducer/{serviceKey}/{queueName}/{partitioningKey}/{ProducerType}";
+	public const string Template = "orleansMessagingKafkaProducer/{serviceKey}/{queueName}/{partitioningKey}/{ProducerType}";
 
 	public string ServiceKey { get; set; }
 	public string QueueName { get; set; }

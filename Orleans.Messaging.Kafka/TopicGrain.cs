@@ -14,7 +14,7 @@ public static partial class GrainFactoryExtensions
 
 public record struct TopicKey
 {
-	public static readonly string Template = "odinMessagingTopics/{serviceKey}";
+	public static readonly string Template = "orleansMessagingTopics/{serviceKey}";
 
 	public static string Create(string serviceKey)
 		=> Template.FromTemplate(new Dictionary<string, object> { ["serviceKey"] = serviceKey });

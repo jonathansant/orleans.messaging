@@ -7,7 +7,7 @@ public record MessagingKafkaOptions : MessagingOptions, IQueueDirectory
 {
 	public IList<TopicConfig> Topics { get; set; } = new List<TopicConfig>();
 	public IList<string> BrokerList { get; set; }
-	public string ConsumerGroupId { get; set; } = "odin-messaging-kafka";
+	public string ConsumerGroupId { get; set; } = "orleans-messaging-kafka";
 	public TimeSpan PollTimeout { get; set; } = TimeSpan.FromMilliseconds(50);
 	public TimeSpan AdminRequestTimeout { get; set; } = TimeSpan.FromSeconds(5);
 	public ConsumeMode ConsumeMode { get; set; } = ConsumeMode.LastCommittedMessage;

@@ -23,7 +23,7 @@ Register the memory provider on your Orleans silo builder:
 ```csharp
 siloBuilder.ConfigureServices(services =>
 {
-    var memoryBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.Platform);
+    var memoryBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.DefaultBroker);
 
     memoryBuilder
         .WithOptions(opts =>
@@ -34,14 +34,14 @@ siloBuilder.ConfigureServices(services =>
         .WithProducerRetries(maxRetries: 2)
         .Build();
 
-    services.AddKeyedSingleton<MessagingMemoryBuilder>(MessageBrokerNames.Platform, memoryBuilder);
+    services.AddKeyedSingleton<MessagingMemoryBuilder>(MessageBrokerNames.DefaultBroker, memoryBuilder);
 });
 ```
 
 Resolve `IMessagingClient`:
 
 ```csharp
-var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
+var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 ```
 
 ---
@@ -193,7 +193,7 @@ await client.Unsubscribe<OrderCreated>(
 
 // Via TopicSubscription record
 await client.Unsubscribe<OrderCreated>(new TopicSubscription(
-    ServiceKey: MessageBrokerNames.Platform,
+    ServiceKey: MessageBrokerNames.DefaultBroker,
     SubscriptionId: subscriptionId,
     TopicName: "orders",
     SubscriptionPattern: "*"
@@ -237,12 +237,12 @@ Subscribe inside `OnActivateAsync` using the `SubscriptionClientExtensions` help
 ```csharp
 public override async Task OnActivateAsync(CancellationToken ct)
 {
-    var client = ServiceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
+    var client = ServiceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 
     var input = this.CreateSubscriptionConfig<OrderCreated, IOrderProcessorGrain>(
         queueName:  "orders",
         pattern:    "*",
-        serviceKey: MessageBrokerNames.Platform
+        serviceKey: MessageBrokerNames.DefaultBroker
     ).Build();
 
     await client.Subscribe(input);
@@ -255,18 +255,18 @@ public override async Task OnActivateAsync(CancellationToken ct)
 
 ```csharp
 // Register two independent memory brokers
-var platformBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.Platform);
-platformBuilder.WithOptions(o => { o.MaxPartitionCount = 4; }).Build();
+var defaultBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.DefaultBroker);
+defaultBuilder.WithOptions(o => { o.MaxPartitionCount = 4; }).Build();
 
-var bifrostBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.Bifrost);
-bifrostBuilder.WithOptions(o => { o.MaxPartitionCount = 2; }).Build();
+var conduitBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.Conduit);
+conduitBuilder.WithOptions(o => { o.MaxPartitionCount = 2; }).Build();
 
-services.AddKeyedSingleton(MessageBrokerNames.Platform, platformBuilder);
-services.AddKeyedSingleton(MessageBrokerNames.Bifrost, bifrostBuilder);
+services.AddKeyedSingleton(MessageBrokerNames.DefaultBroker, defaultBuilder);
+services.AddKeyedSingleton(MessageBrokerNames.Conduit, conduitBuilder);
 
 // Resolve independently
-var platformClient = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
-var bifrostClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Bifrost);
+var defaultClient = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
+var conduitClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Conduit);
 ```
 
 ---

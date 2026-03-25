@@ -17,7 +17,7 @@ public static partial class GrainFactoryExtensions
 	) => grainFactory.GetGrain<ISubscriptionGrain<TMessage>>(GenerateSubscriptionGrainKey(serviceKey, queueName, key));
 
 	public static string GenerateSubscriptionGrainKey(string serviceKey, string queueName, string pattern)
-		=> $"odinMessagingSubscription/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(pattern)}";
+		=> $"orleansMessagingSubscription/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(pattern)}";
 }
 
 public interface ISubscriptionGrain : IGrainWithStringKey
@@ -286,7 +286,7 @@ public record SubscriptionMeta
 
 public struct SubscriptionGrainKey
 {
-	public static string Template { get; } = "odinMessagingSubscription/{ServiceKey}/{QueueName}/{Pattern}";
+	public static string Template { get; } = "orleansMessagingSubscription/{ServiceKey}/{QueueName}/{Pattern}";
 
 	public string ServiceKey { get; set; }
 	public string QueueName { get; set; }
@@ -304,14 +304,14 @@ internal static partial class LogExtensions
 	[LoggerMessage(
 		Level = LogLevel.Debug,
 		Message =
-			"Subscriber successfully processed message from subscription: {subscriptionGrain} with key {subscriptionKey} on queue name {queueName} messageId: {odinMessagingMessageId} message {message}"
+			"Subscriber successfully processed message from subscription: {subscriptionGrain} with key {subscriptionKey} on queue name {queueName} messageId: {messageId} message {message}"
 	)]
 	internal static partial void SuccessfullyPushedMessage(
 		this ILogger logger,
 		string subscriptionGrain,
 		string subscriptionKey,
 		string queueName,
-		string odinMessagingMessageId,
+		string messageId,
 		object message
 	);
 }

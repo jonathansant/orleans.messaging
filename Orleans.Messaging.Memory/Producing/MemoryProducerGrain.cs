@@ -22,7 +22,7 @@ public static partial class GrainFactoryExtensions
 	);
 
 	public static string GenerateProducerGrainKey(string serviceKey, string queueName, string partitioningKey)
-		=> $"odinMessagingMemoryProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}";
+		=> $"orleansMessagingMemoryProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}";
 }
 
 public interface IMemoryProducerGrain : IMessagingGrainContract, IGrainWithStringKey
@@ -233,7 +233,7 @@ internal static partial class LogExtensions
 
 public struct MemoryProducerGrainKey
 {
-	public const string Template = "odinMessagingMemoryProducer/{serviceKey}/{queueName}/{partitioningKey}";
+	public const string Template = "orleansMessagingMemoryProducer/{serviceKey}/{queueName}/{partitioningKey}";
 
 	public string ServiceKey { get; set; }
 	public string QueueName { get; set; }

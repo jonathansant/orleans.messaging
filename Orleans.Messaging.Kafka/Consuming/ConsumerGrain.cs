@@ -16,7 +16,7 @@ namespace Orleans.Messaging.Kafka.Consuming;
 public static partial class GrainFactoryExtensions
 {
 	public static IConsumerGrain GetConsumerGrain(this IGrainFactory grainFactory, string serviceKey, string topic, string partition)
-		=> grainFactory.GetGrain<IConsumerGrain>($"odinKafkaConsumer/{serviceKey}/{topic}/{partition}");
+		=> grainFactory.GetGrain<IConsumerGrain>($"orleansKafkaConsumer/{serviceKey}/{topic}/{partition}");
 }
 
 public interface IConsumerGrain : IGrainWithStringKey
@@ -419,7 +419,7 @@ public struct ConsumerGrainKey
 {
 	private string DebuggerDisplay => $"ServiceKey: '{ServiceKey}', TopicId: '{TopicId}', Partition: '{Partition}'";
 
-	public static string Template = "odinKafkaConsumer/{serviceKey}/{topicId}/{partition}";
+	public static string Template = "orleansKafkaConsumer/{serviceKey}/{topicId}/{partition}";
 	public string ServiceKey { get; set; }
 	public string TopicId { get; set; }
 	public string Partition { get; set; }

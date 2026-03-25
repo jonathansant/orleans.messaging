@@ -12,7 +12,7 @@ public static partial class GrainFactoryExtensions
 		this IGrainFactory grainFactory,
 		string serviceKey,
 		string queueName
-	) => grainFactory.GetGrain<ISubscriptionIndexGrain>($"odinKafkaSubscriptionIndex/{serviceKey}/{queueName}");
+	) => grainFactory.GetGrain<ISubscriptionIndexGrain>($"orleansKafkaSubscriptionIndex/{serviceKey}/{queueName}");
 }
 
 public interface ISubscriptionIndexGrain : IGrainWithStringKey
@@ -128,7 +128,7 @@ public class SubscriptionIndexGrain : Grain, ISubscriptionIndexGrain
 
 public struct SubscriptionIndexGrainKey
 {
-	public const string Template = "odinKafkaSubscriptionIndex/{ServiceKey}/{QueueName}";
+	public const string Template = "orleansKafkaSubscriptionIndex/{ServiceKey}/{QueueName}";
 	public string ServiceKey { get; set; }
 	public string QueueName { get; set; }
 }

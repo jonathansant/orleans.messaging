@@ -29,13 +29,13 @@ siloBuilder.ConfigureServices(services =>
 {
     // register the builder under a service key
     services.AddKeyedSingleton<MessagingKafkaBuilder>(
-        MessageBrokerNames.Platform,
-        (sp, _) => new MessagingKafkaBuilder(siloBuilder, MessageBrokerNames.Platform)
+        MessageBrokerNames.DefaultBroker,
+        (sp, _) => new MessagingKafkaBuilder(siloBuilder, MessageBrokerNames.DefaultBroker)
     );
 });
 
 // configure topics after the DI container is built
-app.Services.ConfigureMessagingKafka(MessageBrokerNames.Platform, (sp, builder) =>
+app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, builder) =>
 {
     builder
         .WithOptions(opts =>
@@ -47,7 +47,7 @@ app.Services.ConfigureMessagingKafka(MessageBrokerNames.Platform, (sp, builder) 
         .WithProducerRetries(maxRetries: 3, maxRetryDelay: TimeSpan.FromMilliseconds(50))
         .Build();
 
-    sp.AddTopic("orders", MessageBrokerNames.Platform, topic =>
+    sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
         topic
             .WithContract<OrderCreated>()
             .WithTopicType(TopicType.InOut)
@@ -59,7 +59,7 @@ app.Services.ConfigureMessagingKafka(MessageBrokerNames.Platform, (sp, builder) 
 Resolve `IMessagingClient` from DI:
 
 ```csharp
-var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
+var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 ```
 
 ---
@@ -73,7 +73,7 @@ Configure via `MessagingKafkaOptions` inside `WithOptions(...)`:
 | Property | Default | Description |
 |----------|---------|-------------|
 | `BrokerList` | — | **Required.** List of Kafka bootstrap servers (e.g. `["broker:9092"]`) |
-| `ConsumerGroupId` | `"odin-messaging-kafka"` | Kafka consumer group ID |
+| `ConsumerGroupId` | `"orleans-messaging-kafka"` | Kafka consumer group ID |
 | `ConsumeMode` | `LastCommittedMessage` | Where to start reading: `Beginning`, `LastCommittedMessage`, `Last` |
 | `PollRate` | 17 ms | How often the consumer grain polls Kafka |
 | `PollTimeout` | 50 ms | Kafka client poll timeout |
@@ -132,7 +132,7 @@ builder.WithOptions(opts =>
 Topics are registered after container build using `AddTopic` on the `IServiceProvider`:
 
 ```csharp
-sp.AddTopic("orders", MessageBrokerNames.Platform, topic =>
+sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
     topic
         .WithContract<OrderCreated>()           // payload type
         .WithTopicType(TopicType.InOut)          // Consumer | Producer | InOut
@@ -261,7 +261,7 @@ builder.WithSubscriptionPattern("orders", opts =>
 Configure per topic to automatically route messages when handler processing fails:
 
 ```csharp
-sp.AddTopic("orders", MessageBrokerNames.Platform, topic =>
+sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
     topic
         .WithContract<OrderCreated>()
         .UseProcessingErrorHandlingMode(
@@ -305,7 +305,7 @@ await client.Unsubscribe<OrderCreated>(
 
 // Via TopicSubscription record
 await client.Unsubscribe<OrderCreated>(new TopicSubscription(
-    ServiceKey: MessageBrokerNames.Platform,
+    ServiceKey: MessageBrokerNames.DefaultBroker,
     SubscriptionId: subscriptionId,
     TopicName: "orders",
     SubscriptionPattern: "region-us"
@@ -378,12 +378,12 @@ Subscribe inside the grain's `OnActivateAsync` to self-register:
 ```csharp
 public override async Task OnActivateAsync(CancellationToken ct)
 {
-    var client = ServiceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
+    var client = ServiceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 
     await this.CreateSubscriptionConfig<OrderCreated, IOrderProcessorGrain>(
             queueName: "orders",
             pattern: "*",
-            serviceKey: MessageBrokerNames.Platform
+            serviceKey: MessageBrokerNames.DefaultBroker
         )
         .WithSubscriptionPattern("*")
         .Build()
@@ -397,7 +397,7 @@ Or use the `SubscriptionClientExtensions` helper:
 var builder = this.CreateSubscriptionConfig<OrderCreated, IOrderProcessorGrain>(
     queueName:  "orders",
     pattern:    "*",
-    serviceKey: MessageBrokerNames.Platform
+    serviceKey: MessageBrokerNames.DefaultBroker
 );
 
 await client.Subscribe(builder.Build());
@@ -411,23 +411,23 @@ Register and configure separate `MessagingKafkaBuilder` instances under differen
 
 ```csharp
 // Register
-services.AddKeyedSingleton<MessagingKafkaBuilder>(MessageBrokerNames.Platform, ...);
-services.AddKeyedSingleton<MessagingKafkaBuilder>(MessageBrokerNames.Bifrost, ...);
+services.AddKeyedSingleton<MessagingKafkaBuilder>(MessageBrokerNames.DefaultBroker, ...);
+services.AddKeyedSingleton<MessagingKafkaBuilder>(MessageBrokerNames.Conduit, ...);
 
 // Configure
-app.Services.ConfigureMessagingKafka(MessageBrokerNames.Platform, (sp, b) =>
+app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, b) =>
 {
     b.WithOptions(o => { o.BrokerList = new[] { "internal-kafka:9092" }; }).Build();
-    sp.AddTopic("orders", MessageBrokerNames.Platform, t => t.WithContract<OrderCreated>()...);
+    sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, t => t.WithContract<OrderCreated>()...);
 });
 
-app.Services.ConfigureMessagingKafka(MessageBrokerNames.Bifrost, (sp, b) =>
+app.Services.ConfigureMessagingKafka(MessageBrokerNames.Conduit, (sp, b) =>
 {
     b.WithOptions(o => { o.BrokerList = new[] { "external-kafka:9092" }; }).Build();
-    sp.AddTopic("events", MessageBrokerNames.Bifrost, t => t.WithContract<ExternalEvent>()...);
+    sp.AddTopic("events", MessageBrokerNames.Conduit, t => t.WithContract<ExternalEvent>()...);
 });
 
 // Resolve the right client
-var internalClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Platform);
-var externalClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Bifrost);
+var internalClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
+var externalClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Conduit);
 ```

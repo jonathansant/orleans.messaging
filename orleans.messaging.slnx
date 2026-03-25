@@ -5,12 +5,8 @@
     <File Path="Directory.Build.targets" />
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Project Path="Odin.CodeAnnotations/Odin.CodeAnnotations.csproj" />
-  <Project Path="Odin.Core/Odin.Core.csproj" />
-  <Project Path="Odin.Logging.Serilog/Odin.Logging.Serilog.csproj" />
   <Project Path="Odin.Messaging.Kafka/Odin.Messaging.Kafka.csproj" />
   <Project Path="Odin.Messaging.Memory/Odin.Messaging.Memory.csproj" />
   <Project Path="Odin.Messaging.SerDes/Odin.Messaging.SerDes.csproj" />
   <Project Path="Odin.Messaging/Odin.Messaging.csproj" />
-  <Project Path="Odin.Orleans.Core/Odin.Orleans.Core.csproj" />
 </Solution>

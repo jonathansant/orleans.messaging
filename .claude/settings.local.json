@@ -4,7 +4,8 @@
       "Bash(find /Users/jonathansant/Developer/orleans.messaging -type f \\\\\\(-name *.cs -o -name Program.cs -o -name Startup.cs \\\\\\))",
       "Bash(find /Users/jonathansant/Developer/orleans.messaging -type f -name *.cs)",
       "Bash(find /Users/jonathansant/Developer/orleans.messaging -not -path */.* -type f)",
-      "Bash(grep -r \"PORT\\\\|port\\\\|Server\\\\|launch\\\\|run\" /Users/jonathansant/Developer/orleans.messaging --include=*.json --include=*.xml --include=*.cs)"
+      "Bash(grep -r \"PORT\\\\|port\\\\|Server\\\\|launch\\\\|run\" /Users/jonathansant/Developer/orleans.messaging --include=*.json --include=*.xml --include=*.cs)",
+      "Bash(git mv:*)"
     ]
   }
 }

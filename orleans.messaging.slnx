@@ -5,8 +5,8 @@
     <File Path="Directory.Build.targets" />
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Project Path="Odin.Messaging.Kafka/Odin.Messaging.Kafka.csproj" />
-  <Project Path="Odin.Messaging.Memory/Odin.Messaging.Memory.csproj" />
-  <Project Path="Odin.Messaging.SerDes/Odin.Messaging.SerDes.csproj" />
-  <Project Path="Odin.Messaging/Odin.Messaging.csproj" />
+  <Project Path="Orleans.Messaging.Kafka/Orleans.Messaging.Kafka.csproj" />
+  <Project Path="Orleans.Messaging.Memory/Orleans.Messaging.Memory.csproj" />
+  <Project Path="Orleans.Messaging.SerDes/Orleans.Messaging.SerDes.csproj" />
+  <Project Path="Orleans.Messaging/Orleans.Messaging.csproj" />
 </Solution>

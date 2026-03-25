@@ -2,7 +2,6 @@
   <Folder Name="/tools/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
-    <File Path="Directory.Build.targets" />
     <File Path="Directory.Packages.props" />
   </Folder>
   <Project Path="Orleans.Messaging.Kafka/Orleans.Messaging.Kafka.csproj" />

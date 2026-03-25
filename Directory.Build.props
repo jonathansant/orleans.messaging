@@ -11,17 +11,14 @@
 
   <!-- Set common properties regarding assembly information and nuget packages -->
   <PropertyGroup>
-    <Authors>River Tech</Authors>
-    <Company>River Tech</Company>
-    <Product>Odin</Product>
-    <Copyright>© River Tech. All rights reserved.</Copyright>
+    <Authors>Jonathan Sant</Authors>
+    <Copyright>© Jonathan Sant. All rights reserved.</Copyright>
     <!-- todo: add license https://github.com/NuGet/Home/wiki/Packaging-License-within-the-nupkg-(Technical-Spec)
-       <PackageLicenseUrl>https://github.com/River-iGaming/odin.layerzero#license</PackageLicenseUrl> -->
-    <PackageProjectUrl>https://github.com/River-iGaming/odin.layerzero</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/jonathansant/orleans.messaging</PackageProjectUrl> -->
     <PackageIcon>package-icon.png</PackageIcon>
-    <PackageTags>Odin Core C# .NET</PackageTags>
+    <PackageTags>Orleans C# .NET Messaging</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>
-    <RepositoryUrl>https://github.com/River-iGaming/odin.layerzero</RepositoryUrl>
+    <RepositoryUrl>https://github.com/jonathansant/orleans.messaging</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <!-- Note: quite nice to have but since we dont really use, they will simply slow down CI
     <IncludeSymbols>true</IncludeSymbols>

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- vendor packages -->
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Microsoft.Orleans.Runtime" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Ulid"/>
+    <PackageReference Include="Humanizer.Core"/>
+  </ItemGroup>
+
+  <!-- packages -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+  </ItemGroup>
+
+  <!-- libraries -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+  </ItemGroup>
+
+  <!-- src libraries -->
+  <ItemGroup>
+    <ProjectReference Include="..\Orleans.Messaging.SerDes\Orleans.Messaging.SerDes.csproj" />
+<!--    <ProjectReference Include="..\Orleans.Core\Orleans.Core.csproj" />-->
+  </ItemGroup>
+
+</Project>

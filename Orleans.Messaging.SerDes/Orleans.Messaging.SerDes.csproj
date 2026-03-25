@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Orleans.Messaging SerDes</Description>
+    <PackageTags>$(PackageTags) Orleans.Messaging SerDes simple client wrapper</PackageTags>
+  </PropertyGroup>
+
+  <!-- vendor packages -->
+  <ItemGroup>
+    <PackageReference Include="Chr.Avro.Confluent" />
+    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Avro"/>
+  </ItemGroup>
+
+  <!-- packages -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+  </ItemGroup>
+
+  <!-- libraries -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+  </ItemGroup>
+
+  <!-- src libraries -->
+  <ItemGroup>
+  </ItemGroup>
+
+</Project>

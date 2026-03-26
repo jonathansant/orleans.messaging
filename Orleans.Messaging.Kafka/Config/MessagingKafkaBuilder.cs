@@ -14,7 +14,7 @@ public class MessagingKafkaBuilder : MessagingBuilder<MessagingKafkaOptions>
 	public MessagingKafkaBuilder(ISiloBuilder siloBuilder, string? key)
 		: base(siloBuilder, key)
 	{
-		key ??= MessageBrokerNames.Default;
+		key ??= "defaultBroker";
 
 		ConfigureServicesDelegate += services =>
 		{

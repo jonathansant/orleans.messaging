@@ -12,7 +12,7 @@ public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 	public MessagingMemoryBuilder(ISiloBuilder siloBuilder, string? key)
 		: base(siloBuilder, key)
 	{
-		key ??= MessageBrokerNames.Default;
+		key ??= "defaultBroker";
 
 		ConfigureServicesDelegate += services =>
 		{

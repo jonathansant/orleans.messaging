@@ -218,7 +218,7 @@ public record MessageSubscriptionInput<TMessage>
 	public ScheduledThrottledActionOptions ScheduledThrottledActionOptions { get; set; }
 
 	[Id(7)]
-	public string ServiceKey { get; set; } = MessageBrokerNames.Default;
+	public string ServiceKey { get; set; } = "defaultBroker";
 }
 
 public static class SubscriptionClientExtensions

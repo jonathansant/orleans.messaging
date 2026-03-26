@@ -71,7 +71,7 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 		_grainFactory = grainFactory;
 		_logger = logger;
 
-		_serviceKeys = kafkaInstances?.ServiceKeys ?? [MessageBrokerNames.Default];
+		_serviceKeys = kafkaInstances?.ServiceKeys ?? ["defaultBroker"];
 
 		_shouldRebalanceByServiceKey = new(_serviceKeys.Count);
 		_rebalanceConsumerTimerByServiceKey = new(_serviceKeys.Count);

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Server" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Orleans.Messaging.Memory\Orleans.Messaging.Memory.csproj" />
+    <ProjectReference Include="..\Orleans.Messaging.Tests.Grains\Orleans.Messaging.Tests.Grains.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
-using Orleans.Messaging.FlowControl;
 using Orleans.Messaging.Accessors;
 using Orleans.Messaging.Config;
+using Orleans.Messaging.FlowControl;
 using Orleans.Messaging.Kafka.Consuming;
 using Orleans.Messaging.Kafka.Producing;
 using Orleans.Messaging.Kafka.Serialization;
@@ -11,8 +11,20 @@ namespace Orleans.Messaging.Kafka.Config;
 
 public class MessagingKafkaBuilder : MessagingBuilder<MessagingKafkaOptions>
 {
-	public MessagingKafkaBuilder(ISiloBuilder siloBuilder, string? key)
+	internal MessagingKafkaBuilder(ISiloBuilder siloBuilder, string? key)
 		: base(siloBuilder, key)
+	{
+		RegisterKafkaServices(key, true);
+	}
+
+	// todo: create a client side builder registering only needed services and remove this
+	public MessagingKafkaBuilder(IServiceCollection services, string? key)
+		: base(services, key)
+	{
+		RegisterKafkaServices(key, false);
+	}
+
+	private void RegisterKafkaServices(string? key, bool isSilo)
 	{
 		key ??= "defaultBroker";
 
@@ -46,30 +58,33 @@ public class MessagingKafkaBuilder : MessagingBuilder<MessagingKafkaOptions>
 				(provider, _) => ActivatorUtilities.CreateInstance<KafkaProducerAccessor>(provider, key)
 			);
 
-			services.AddKeyedSingleton<IConsumerAccessor, KafkaConsumerAccessor>(
-				key,
-				(provider, _) => ActivatorUtilities.CreateInstance<KafkaConsumerAccessor>(provider, key)
-			);
 			services.AddKeyedSingleton<IQueueDirectory>(key, (sp, _) => sp.GetRequiredService<IOptions<MessagingKafkaOptions>>().Value);
-			services.AddGrainService<ConsumerGrainService>().AddSingleton<IConsumerGrainServiceClient, ConsumerGrainServiceClient>();
+
+			if (isSilo)
+			{
+				services.AddKeyedSingleton<IConsumerAccessor, KafkaConsumerAccessor>(
+					key,
+					(provider, _) => ActivatorUtilities.CreateInstance<KafkaConsumerAccessor>(provider, key)
+				);
+				services.AddGrainService<ConsumerGrainService>().AddSingleton<IConsumerGrainServiceClient, ConsumerGrainServiceClient>();
+			}
 		};
 	}
 
 	public MessagingKafkaBuilder WithOptions(Action<MessagingKafkaOptions> configure)
 	{
 		OptionsDelegate += configure;
+
 		return this;
 	}
 }
 
 public class MessagingTopicConfigBuilder
 {
-	private readonly IServiceProvider _serviceProvider;
-	private readonly string _serviceKey;
 	private readonly MessagingKafkaBuilder _kafkaBuilder;
+	private readonly string _serviceKey;
+	private readonly IServiceProvider _serviceProvider;
 	private readonly TopicConfig _topicConfig = new();
-
-	public TopicConfig TopicConfig => _topicConfig;
 
 	public MessagingTopicConfigBuilder(
 		IServiceProvider serviceProvider,
@@ -85,6 +100,8 @@ public class MessagingTopicConfigBuilder
 		serviceProvider.GetRequiredService<IOptionsMonitor<MessagingKafkaOptions>>().Get(serviceKey).Topics.Add(_topicConfig);
 	}
 
+	public TopicConfig TopicConfig => _topicConfig;
+
 	// public MessagingTopicConfigBuilder IsProducer()
 	// {
 	// 	_topicConfig.IsProducer = true;
@@ -94,24 +111,28 @@ public class MessagingTopicConfigBuilder
 	public MessagingTopicConfigBuilder WithTopicType(TopicType type)
 	{
 		_topicConfig.Type = type;
+
 		return this;
 	}
 
 	public MessagingTopicConfigBuilder WithPartitioning(bool isPartitioned = true)
 	{
 		_topicConfig.IsPartitioned = isPartitioned;
+
 		return this;
 	}
 
 	public MessagingTopicConfigBuilder WithDelaySubscription(ScheduledThrottledActionOptions delayOpts)
 	{
 		_topicConfig.DelayOptions = delayOpts;
+
 		return this;
 	}
 
 	public MessagingTopicConfigBuilder WithContract(Type contractType)
 	{
 		_topicConfig.ContractType = contractType;
+
 		return this;
 	}
 
@@ -122,18 +143,21 @@ public class MessagingTopicConfigBuilder
 		where TSerializer : IMessageSerializer
 	{
 		WithSerializer(typeof(TSerializer), extraParams);
+
 		return this;
 	}
 
 	public MessagingTopicConfigBuilder WithPollRate(TimeSpan pollRate)
 	{
 		_topicConfig.PollRate = pollRate;
+
 		return this;
 	}
 
 	public MessagingTopicConfigBuilder WithBatchSize(int batchSize)
 	{
 		_topicConfig.BatchSize = batchSize;
+
 		return this;
 	}
 
@@ -170,12 +194,14 @@ public class MessagingTopicConfigBuilder
 	public MessagingTopicConfigBuilder WithConsumerMessageTransformer(Action<Message> transformer)
 	{
 		_topicConfig.MessageTransformer = transformer;
+
 		return this;
 	}
 
 	public MessagingTopicConfigBuilder WithConsumerMessageTransformer(Func<IServiceProvider, Action<Message>> config)
 	{
 		_topicConfig.MessageTransformer = config(_serviceProvider);
+
 		return this;
 	}
 
@@ -185,55 +211,61 @@ public class MessagingTopicConfigBuilder
 		_topicConfig.Partitions = creationConfig.Partitions;
 		_topicConfig.ReplicationFactor = creationConfig.ReplicationFactor;
 		_topicConfig.RetentionPeriodInMs = creationConfig.RetentionPeriodInMs;
+
 		return this;
 	}
 }
 
 public static partial class ServiceProviderExtensions
 {
-	public static MessagingTopicConfigBuilder AddTopic(this IServiceProvider provider, string topicName, string serviceKey)
+	extension(IServiceProvider provider)
 	{
-		var topicBuilder = ActivatorUtilities.CreateInstance<MessagingTopicConfigBuilder>(provider, topicName, serviceKey);
-		return topicBuilder;
-	}
+		public MessagingTopicConfigBuilder AddTopic(string topicName, string serviceKey)
+		{
+			var topicBuilder = ActivatorUtilities.CreateInstance<MessagingTopicConfigBuilder>(provider, topicName, serviceKey);
 
-	public static IServiceProvider AddTopic(
-		this IServiceProvider provider,
-		string topicName,
-		string serviceKey,
-		Action<MessagingTopicConfigBuilder> builder
-	)
-	{
-		var topicBuilder = AddTopic(provider, topicName, serviceKey);
-		builder(topicBuilder);
+			return topicBuilder;
+		}
 
-		return provider;
-	}
+		public IServiceProvider AddTopic(
+			string topicName,
+			string serviceKey,
+			Action<MessagingTopicConfigBuilder> builder
+		)
+		{
+			var topicBuilder = AddTopic(provider, topicName, serviceKey);
+			builder(topicBuilder);
 
-	public static IServiceProvider ConfigureMessagingKafka(
-		this IServiceProvider provider,
-		string serviceKey,
-		Action<IServiceProvider, MessagingKafkaBuilder>? configure = null
-	)
-	{
-		var kafkaBuilder = provider.GetRequiredKeyedService<MessagingKafkaBuilder>(serviceKey);
-		configure?.Invoke(provider, kafkaBuilder);
+			return provider;
+		}
 
-		return provider;
+		public IServiceProvider ConfigureMessagingKafka(
+			string serviceKey,
+			Action<IServiceProvider, MessagingKafkaBuilder>? configure = null
+		)
+		{
+			var kafkaBuilder = provider.GetRequiredKeyedService<MessagingKafkaBuilder>(serviceKey);
+			configure?.Invoke(provider, kafkaBuilder);
+
+			return provider;
+		}
 	}
 }
 
-// public static class HostBuilderExtensions
-// {
-// 	public static MessagingKafkaBuilder AddMessagingKafka(this ISiloBuilder hostBuilder)
-// 		=> new(hostBuilder);
-//
-// 	public static ISiloBuilder AddMessagingKafka(this ISiloBuilder hostBuilder, Action<MessagingKafkaBuilder> cfg)
-// 	{
-// 		var builder = new MessagingKafkaBuilder(hostBuilder);
-// 		cfg(builder);
-// 		builder.Build();
-//
-// 		return hostBuilder;
-// 	}
-// }
+public static class HostBuilderExtensions
+{
+	extension(ISiloBuilder hostBuilder)
+	{
+		public MessagingKafkaBuilder AddMessagingKafka(string serviceKey)
+			=> new(hostBuilder, serviceKey);
+
+		public ISiloBuilder AddMessagingKafka(string serviceKey, Action<MessagingKafkaBuilder> cfg)
+		{
+			var builder = new MessagingKafkaBuilder(hostBuilder, serviceKey);
+			cfg(builder);
+			builder.Build();
+
+			return hostBuilder;
+		}
+	}
+}

@@ -12,6 +12,17 @@ public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 	public MessagingMemoryBuilder(ISiloBuilder siloBuilder, string? key)
 		: base(siloBuilder, key)
 	{
+		RegisterMemoryServices(key);
+	}
+
+	public MessagingMemoryBuilder(IServiceCollection services, string? key)
+		: base(services, key)
+	{
+		RegisterMemoryServices(key);
+	}
+
+	private void RegisterMemoryServices(string? key)
+	{
 		key ??= "defaultBroker";
 
 		ConfigureServicesDelegate += services =>

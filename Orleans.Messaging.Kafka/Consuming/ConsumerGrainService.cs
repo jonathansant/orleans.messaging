@@ -1,10 +1,11 @@
+using System.Collections.Immutable;
+using System.IO.Hashing;
+using System.Text;
+using Orleans.Messaging.Config;
 using Orleans.Messaging.FlowControl;
 using Orleans.Messaging.Kafka.Config;
 using Orleans.Runtime.Services;
 using Orleans.Services;
-using System.Collections.Immutable;
-using System.IO.Hashing;
-using System.Text;
 
 namespace Orleans.Messaging.Kafka.Consuming;
 
@@ -34,28 +35,24 @@ public interface IConsumerGrainService : IGrainService
 	Task InitializeConsumers();
 };
 
-public record KafkaInstances(
-	List<string> ServiceKeys
-);
-
 public class ConsumerGrainService : GrainService, IConsumerGrainService
 {
 	private const string Unpartitioned = "unpartitioned";
+	private readonly Dictionary<string, Dictionary<string, List<int>>> _consumerTopicPartitionsByServiceKey;
 
-	private readonly Silo _silo;
+	private readonly List<string> _emptyLogString = "empty".ToSingleList();
 	private readonly IGrainFactory _grainFactory;
 	private readonly ILogger<ConsumerGrainService> _logger;
+	private readonly Dictionary<string, ImmutableList<TopicMetadata>> _metaByServiceKey;
+	private readonly Dictionary<string, MessagingKafkaOptions> _optionsByServiceKey;
+	private readonly Dictionary<string, List<MessagingTimer>> _pollTimersByServiceKey;
 	private readonly Random _random = new();
+	private readonly Dictionary<string, MessagingTimer> _rebalanceConsumerTimerByServiceKey;
 
 	private readonly List<string> _serviceKeys;
 	private readonly Dictionary<string, bool> _shouldRebalanceByServiceKey;
-	private readonly Dictionary<string, MessagingTimer> _rebalanceConsumerTimerByServiceKey;
-	private readonly Dictionary<string, Dictionary<string, List<int>>> _consumerTopicPartitionsByServiceKey;
-	private readonly Dictionary<string, MessagingKafkaOptions> _optionsByServiceKey;
-	private readonly Dictionary<string, ImmutableList<TopicMetadata>> _metaByServiceKey;
-	private readonly Dictionary<string, List<MessagingTimer>> _pollTimersByServiceKey;
 
-	private readonly List<string> _emptyLogString = "empty".ToSingleList();
+	private readonly Silo _silo;
 
 	public ConsumerGrainService(
 		GrainId id,
@@ -64,14 +61,14 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 		ILogger<ConsumerGrainService> logger,
 		ILoggerFactory loggerFactory,
 		IOptionsMonitor<MessagingKafkaOptions> optionsMonitor,
-		KafkaInstances? kafkaInstances = null
+		IBrokerRegistry brokerRegistry
 	) : base(id, silo, loggerFactory)
 	{
 		_silo = silo;
 		_grainFactory = grainFactory;
 		_logger = logger;
 
-		_serviceKeys = kafkaInstances?.ServiceKeys ?? ["defaultBroker"];
+		_serviceKeys = brokerRegistry.GetAll().ToList();
 
 		_shouldRebalanceByServiceKey = new(_serviceKeys.Count);
 		_rebalanceConsumerTimerByServiceKey = new(_serviceKeys.Count);
@@ -89,32 +86,6 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 		}
 	}
 
-	public override async Task Start()
-	{
-		await base.Start();
-		_logger.LogInformation(">> Starting consumer service on {silo}", _silo.SiloAddress.ToString());
-	}
-
-	public override async Task Stop()
-	{
-		_logger.LogInformation(">> Stopping consumer service on {silo}", _silo.SiloAddress.ToString());
-
-		foreach (var serviceKey in _serviceKeys)
-		{
-			if (!_optionsByServiceKey[serviceKey].IsConsumeEnabled)
-				continue;
-
-			if (!_pollTimersByServiceKey[serviceKey].IsNullOrEmpty())
-				await _pollTimersByServiceKey[serviceKey].ForEachAsync(async x => await x.DisposeAsync());
-
-			await (_rebalanceConsumerTimerByServiceKey[serviceKey]?.DisposeAsync() ?? ValueTask.CompletedTask);
-		}
-
-		await base.Stop();
-
-		_logger.LogInformation("<< Stopped consumer service on {silo}", _silo.SiloAddress.ToString());
-	}
-
 	public async Task InitializeConsumers()
 	{
 		foreach (var serviceKey in _serviceKeys)
@@ -128,6 +99,7 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 						serviceKey,
 						_silo.SiloAddress.ToString()
 					);
+
 				continue;
 			}
 
@@ -163,12 +135,38 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 		_logger.LogInformation("<< Started consumer service on {silo}", _silo.SiloAddress.ToString());
 	}
 
+	public override async Task Start()
+	{
+		await base.Start();
+		_logger.LogInformation(">> Starting consumer service on {silo}", _silo.SiloAddress.ToString());
+	}
+
+	public override async Task Stop()
+	{
+		_logger.LogInformation(">> Stopping consumer service on {silo}", _silo.SiloAddress.ToString());
+
+		foreach (var serviceKey in _serviceKeys)
+		{
+			if (!_optionsByServiceKey[serviceKey].IsConsumeEnabled)
+				continue;
+
+			if (!_pollTimersByServiceKey[serviceKey].IsNullOrEmpty())
+				await _pollTimersByServiceKey[serviceKey].ForEachAsync(async x => await x.DisposeAsync());
+
+			await (_rebalanceConsumerTimerByServiceKey[serviceKey]?.DisposeAsync() ?? ValueTask.CompletedTask);
+		}
+
+		await base.Stop();
+
+		_logger.LogInformation("<< Stopped consumer service on {silo}", _silo.SiloAddress.ToString());
+	}
+
 	private TimeSpan CalculatePollRate(string topic, string serviceKey)
 	{
 		var options = _optionsByServiceKey[serviceKey];
 
 		var configuredPollRate = options.Topics.FindFirst(x => x.Name == topic).PollRate?.TotalMilliseconds
-		                         ?? options.PollRate.TotalMilliseconds
+								?? options.PollRate.TotalMilliseconds
 			;
 
 		return TimeSpan.FromMilliseconds(
@@ -189,13 +187,14 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 			if (consumerTopicPartitions.IsNullOrEmpty())
 			{
 				_logger.NoTopicsConfigured(serviceKey, siloAddress);
+
 				return;
 			}
 
 			_logger.RebalancingTopics(
-				silo: siloAddress,
-				serviceKey: serviceKey,
-				topics: string.Join(',', consumerTopicPartitions.Select(x => x.Key))
+				siloAddress,
+				serviceKey,
+				string.Join(',', consumerTopicPartitions.Select(x => x.Key))
 			);
 
 			if (!_pollTimersByServiceKey[serviceKey].IsNullOrEmpty())
@@ -207,7 +206,7 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 
 						var pollTimer = new MessagingTimer(
 								async _ => await TriggerConsume(topicPartitions.Key, topicPartitions.Value, serviceKey),
-								new(pollRate, InitialDelay: pollRate)
+								new(pollRate, pollRate)
 							).OnError(ex =>
 								{
 									_logger.LogError(
@@ -217,6 +216,7 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 										topicPartitions.Key,
 										topicPartitions.Value
 									);
+
 									return Task.CompletedTask;
 								}
 							)
@@ -232,6 +232,7 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 			if (!_shouldRebalanceByServiceKey[serviceKey])
 			{
 				_shouldRebalanceByServiceKey[serviceKey] = true;
+
 				return;
 			}
 
@@ -265,7 +266,7 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 	{
 		try
 		{
-			_logger.TriggeringConsumer(serviceKey: serviceKey, topic: topic, silo: _silo.SiloAddress.ToString());
+			_logger.TriggeringConsumer(serviceKey, topic, _silo.SiloAddress.ToString());
 
 			if (_optionsByServiceKey[serviceKey].Topics.FindFirst(x => x.Name == topic).IsPartitioned)
 				await partitions.ForEachAsync(async partition =>
@@ -316,13 +317,11 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 			);
 
 		if (consumerGroupings.Count != topicConfigs.Count)
-		{
 			_logger.LogWarning(
 				"Not all topics are assigned to a consumer group for serviceKey {serviceKey}. " + "Topics: {topics}",
 				serviceKey,
 				string.Join(',', new HashSet<string>(topicConfigs.Select(x => x.Name)).Except(consumerGroupings.Keys))
 			);
-		}
 
 		return consumerGroupings;
 	}

@@ -1,8 +1,7 @@
+using System.Collections.Immutable;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Orleans.Messaging.Kafka.Config;
-using System.Collections.Immutable;
-using System.Text.RegularExpressions;
 
 namespace Orleans.Messaging.Kafka;
 
@@ -16,10 +15,10 @@ public record struct TopicKey
 {
 	public static readonly string Template = "orleansMessagingTopics/{serviceKey}";
 
+	public string ServiceKey { get; set; }
+
 	public static string Create(string serviceKey)
 		=> Template.FromTemplate(new Dictionary<string, object> { ["serviceKey"] = serviceKey });
-
-	public string ServiceKey { get; set; }
 }
 
 public interface ITopicGrain : IMessagingGrainContract, IGrainWithStringKey
@@ -55,14 +54,14 @@ public class TopicGrain : Grain, ITopicGrain
 	public Task Activate() => Task.CompletedTask;
 	public Task ActivateOneWay() => Task.CompletedTask;
 
+	public ValueTask<ImmutableList<TopicMetadata>> GetBrokerTopics()
+		=> ValueTask.FromResult(_store.State.BrokerMetadata);
+
 	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
 		await base.OnActivateAsync(cancellationToken);
 		await Initialize();
 	}
-
-	public ValueTask<ImmutableList<TopicMetadata>> GetBrokerTopics()
-		=> ValueTask.FromResult(_store.State.BrokerMetadata);
 
 	private async Task Initialize()
 	{
@@ -99,8 +98,8 @@ public class TopicGrain : Grain, ITopicGrain
 	{
 		var deadLetterTopics = _options.Topics
 			.Where(x => x.ProcessingFailedHandlingMode is ProcessingFailedHandlingMode.Dlq
-			            && x.Type is not TopicType.Producer
-			            && _store.State.BrokerMetadata.All(t => t.Topic != x.DeadLetterQueueName)
+						&& x.Type is not TopicType.Producer
+						&& _store.State.BrokerMetadata.All(t => t.Topic != x.DeadLetterQueueName)
 			)
 			.Select(x => x.DeadLetterQueueName)
 			.ToList();
@@ -115,7 +114,7 @@ public class TopicGrain : Grain, ITopicGrain
 	{
 		var dlqTopicMeta = meta.FindSingle(kt => kt.Topic == topic);
 
-		var topicBuilder = new MessagingTopicConfigBuilder(_serviceProvider, topic, serviceKey: _keyData.ServiceKey);
+		var topicBuilder = new MessagingTopicConfigBuilder(_serviceProvider, topic, _keyData.ServiceKey);
 
 		//todo: config
 		topicBuilder
@@ -144,7 +143,6 @@ public class TopicGrain : Grain, ITopicGrain
 		};
 
 		if (topic.RetentionPeriodInMs.HasValue)
-		{
 			topicSpecification.Configs = new()
 			{
 				{
@@ -152,7 +150,6 @@ public class TopicGrain : Grain, ITopicGrain
 					topic.RetentionPeriodInMs.ToString()
 				}
 			};
-		}
 
 		return client.CreateTopicsAsync(topicSpecification.ToSingleList());
 	}

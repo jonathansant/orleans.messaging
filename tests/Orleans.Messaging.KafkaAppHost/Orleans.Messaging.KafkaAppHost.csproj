@@ -1,0 +1,21 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.0">
+
+    <PropertyGroup>
+      <OutputType>Exe</OutputType>
+      <TargetFramework>net10.0</TargetFramework>
+      <Nullable>enable</Nullable>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <IsAspireHost>true</IsAspireHost>
+      <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.Kafka" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\tests\Orleans.Messaging.Tests.Kafka.SiloHost\Orleans.Messaging.Tests.Kafka.SiloHost.csproj" />
+  </ItemGroup>
+
+</Project>

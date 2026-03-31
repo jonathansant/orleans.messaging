@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Server" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Orleans.Messaging.Kafka\Orleans.Messaging.Kafka.csproj" />
+    <ProjectReference Include="..\Orleans.Messaging.Tests.Grains\Orleans.Messaging.Tests.Grains.csproj" />
+  </ItemGroup>
+
+</Project>

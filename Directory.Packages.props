@@ -66,5 +66,19 @@
     <PackageVersion Include="Ulid" Version="1.4.1" />
     <!-- internal - open source -->
     <PackageVersion Include="FluentlyHttpClient" Version="4.1.1" />
+    <!-- testing -->
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.2.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="FluentAssertions" Version="7.0.0" />
+    <!-- aspire -->
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Kafka" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Kafka" Version="13.2.0" />
   </ItemGroup>
 </Project>

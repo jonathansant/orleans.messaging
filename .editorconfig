@@ -56,7 +56,7 @@ resharper_wrap_chained_binary_expressions = chop_if_long
 resharper_wrap_chained_binary_patterns = chop_if_long
 resharper_wrap_list_pattern = chop_if_long
 resharper_wrap_primary_constructor_parameters_style = chop_always
-resharper_convert_to_extension_block_highlighting=warning
+resharper_convert_to_extension_block_highlighting = warning
 
 
 # Microsoft .NET properties
@@ -122,38 +122,38 @@ dotnet_naming_style.i_upper_camel_case_style.required_prefix = I
 dotnet_naming_style.lower_camel_case_style.capitalization = camel_case
 dotnet_naming_style.lower_camel_case_style.required_prefix = _
 dotnet_naming_style.upper_camel_case_style.capitalization = pascal_case
-dotnet_naming_symbols.const_fieldprop_symbols.applicable_accessibilities = local,public,internal,private
+dotnet_naming_symbols.const_fieldprop_symbols.applicable_accessibilities = local, public, internal, private
 dotnet_naming_symbols.const_fieldprop_symbols.applicable_kinds = field
 dotnet_naming_symbols.const_fieldprop_symbols.required_modifiers = const
 dotnet_naming_symbols.const_fieldprop_symbols.resharper_applicable_kinds = constant_field
 dotnet_naming_symbols.const_fieldprop_symbols.resharper_required_modifiers = any
-dotnet_naming_symbols.interface_should_be_begins_with_i_symbols.applicable_accessibilities = local,public,internal,private,protected,protected_internal
+dotnet_naming_symbols.interface_should_be_begins_with_i_symbols.applicable_accessibilities = local, public, internal, private, protected, protected_internal
 dotnet_naming_symbols.interface_should_be_begins_with_i_symbols.applicable_kinds = interface
 dotnet_naming_symbols.interface_should_be_begins_with_i_symbols.resharper_applicable_kinds = interface
 dotnet_naming_symbols.interface_should_be_begins_with_i_symbols.resharper_required_modifiers = any
-dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.applicable_accessibilities = local,public,internal,private,protected,protected_internal
-dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.applicable_kinds = property,event,method
-dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.resharper_applicable_kinds = property,event,method
+dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.applicable_accessibilities = local, public, internal, private, protected, protected_internal
+dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.applicable_kinds = property, event, method
+dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.resharper_applicable_kinds = property, event, method
 dotnet_naming_symbols.non_field_members_should_be_pascal_case_symbols.resharper_required_modifiers = any
 dotnet_naming_symbols.private_constants_symbols.applicable_accessibilities = private
 dotnet_naming_symbols.private_constants_symbols.applicable_kinds = field
 dotnet_naming_symbols.private_constants_symbols.required_modifiers = const
-dotnet_naming_symbols.private_or_internal_static_field_should_be_starts_with__symbols.applicable_accessibilities = local,internal,private
+dotnet_naming_symbols.private_or_internal_static_field_should_be_starts_with__symbols.applicable_accessibilities = local, internal, private
 dotnet_naming_symbols.private_or_internal_static_field_should_be_starts_with__symbols.applicable_kinds = field
 dotnet_naming_symbols.private_or_internal_static_field_should_be_starts_with__symbols.required_modifiers = static
 dotnet_naming_symbols.private_or_internal_static_field_should_be_starts_with__symbols.resharper_applicable_kinds = any_field
 dotnet_naming_symbols.private_or_internal_static_field_should_be_starts_with__symbols.resharper_required_modifiers = static
 dotnet_naming_symbols.private_static_readonly_symbols.applicable_accessibilities = private
 dotnet_naming_symbols.private_static_readonly_symbols.applicable_kinds = field
-dotnet_naming_symbols.private_static_readonly_symbols.required_modifiers = static,readonly
-dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.applicable_accessibilities = local,public,internal,private
+dotnet_naming_symbols.private_static_readonly_symbols.required_modifiers = static, readonly
+dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.applicable_accessibilities = local, public, internal, private
 dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.applicable_kinds = field
-dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.required_modifiers = readonly,static
+dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.required_modifiers = readonly, static
 dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.resharper_applicable_kinds = readonly_field
 dotnet_naming_symbols.static_fieldprop_pascal_case_symbols.resharper_required_modifiers = static
-dotnet_naming_symbols.types_should_be_pascal_case_symbols.applicable_accessibilities = local,public,internal,private,protected,protected_internal
-dotnet_naming_symbols.types_should_be_pascal_case_symbols.applicable_kinds = class,struct,interface,enum
-dotnet_naming_symbols.types_should_be_pascal_case_symbols.resharper_applicable_kinds = class,struct,interface,enum
+dotnet_naming_symbols.types_should_be_pascal_case_symbols.applicable_accessibilities = local, public, internal, private, protected, protected_internal
+dotnet_naming_symbols.types_should_be_pascal_case_symbols.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.types_should_be_pascal_case_symbols.resharper_applicable_kinds = class, struct, interface, enum
 dotnet_naming_symbols.types_should_be_pascal_case_symbols.resharper_required_modifiers = any
 dotnet_sort_system_directives_first = false
 dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:none
@@ -184,6 +184,9 @@ spaces_around_operators = inside
 
 # C# files
 [*.cs]
+
+# usings
+dotnet_diagnostic.IDE0005.severity = warning # IDE0005: Remove unnecessary usings
 
 # performance
 dotnet_diagnostic.CA1852.severity = suggestion # CA1852: Seal internal types
@@ -218,7 +221,7 @@ end_of_line = crlf
 
 # Organize usings
 dotnet_separate_import_directive_groups = false
-dotnet_sort_system_directives_first = false
+dotnet_sort_system_directives_first = true
 
 # this. and Me. preferences
 dotnet_style_qualification_for_event = false:warning
@@ -289,7 +292,7 @@ csharp_style_conditional_delegate_call = true:warning
 
 # Modifier preferences
 csharp_prefer_static_local_function = true:suggestion
-csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async
+csharp_preferred_modifier_order = public, private, protected, internal, static, extern, new, virtual, abstract, sealed, override, readonly, unsafe, volatile, async
 
 # Code-block preferences
 csharp_prefer_braces = false:suggestion
@@ -306,7 +309,6 @@ csharp_style_unused_value_expression_statement_preference = discard_variable:sil
 # 'using' directive preferences
 csharp_using_directive_placement = outside_namespace:silent
 
-csharp_style_namespace_declarations = file_scoped:warning
 
 #### C# Formatting Rules ####
 
@@ -389,7 +391,7 @@ dotnet_naming_rule.private_or_internal_static_field_should_be_starts_with__.styl
 
 dotnet_naming_symbols.interface.applicable_kinds = interface
 dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal
-dotnet_naming_symbols.interface.required_modifiers = 
+dotnet_naming_symbols.interface.required_modifiers =
 
 dotnet_naming_symbols.static_fieldprop.applicable_kinds = field, property
 dotnet_naming_symbols.static_fieldprop.applicable_accessibilities = private, public, internal
@@ -405,27 +407,27 @@ dotnet_naming_symbols.private_or_internal_static_field.required_modifiers = stat
 
 dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
 dotnet_naming_symbols.types.applicable_accessibilities = public, internal, private, protected, protected_internal
-dotnet_naming_symbols.types.required_modifiers = 
+dotnet_naming_symbols.types.required_modifiers =
 
 dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
 dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal
-dotnet_naming_symbols.non_field_members.required_modifiers = 
+dotnet_naming_symbols.non_field_members.required_modifiers =
 
 # Naming styles
 
-dotnet_naming_style.pascal_case.required_prefix = 
-dotnet_naming_style.pascal_case.required_suffix = 
-dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.required_prefix =
+dotnet_naming_style.pascal_case.required_suffix =
+dotnet_naming_style.pascal_case.word_separator =
 dotnet_naming_style.pascal_case.capitalization = pascal_case
 
 dotnet_naming_style.begins_with_i.required_prefix = I
-dotnet_naming_style.begins_with_i.required_suffix = 
-dotnet_naming_style.begins_with_i.word_separator = 
+dotnet_naming_style.begins_with_i.required_suffix =
+dotnet_naming_style.begins_with_i.word_separator =
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
 dotnet_naming_style.starts_with__.required_prefix = _
-dotnet_naming_style.starts_with__.required_suffix = 
-dotnet_naming_style.starts_with__.word_separator = 
+dotnet_naming_style.starts_with__.required_suffix =
+dotnet_naming_style.starts_with__.word_separator =
 dotnet_naming_style.starts_with__.capitalization = camel_case
 
 # Source gen severity

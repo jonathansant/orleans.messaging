@@ -2,7 +2,8 @@ using Orleans.Messaging.Tests.Memory.Fixtures;
 
 namespace Orleans.Messaging.Tests.Memory.Tests;
 
-public class UnsubscribeTests : IClassFixture<MemoryClusterFixture>
+[Collection("Memory")]
+public class UnsubscribeTests
 {
 	private const string Topic = "test-messages";
 

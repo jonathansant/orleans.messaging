@@ -2,7 +2,8 @@ using Orleans.Messaging.Tests.Kafka.Fixtures;
 
 namespace Orleans.Messaging.Tests.Kafka.Tests;
 
-public class ProduceTests : IClassFixture<KafkaClusterFixture>
+[Collection("Kafka")]
+public class ProduceTests
 {
 	private const string Topic = "test-messages";
 

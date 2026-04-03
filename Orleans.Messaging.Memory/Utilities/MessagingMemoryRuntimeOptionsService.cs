@@ -62,6 +62,7 @@ public class MessagingMemoryRuntimeOptionsService(
 			throw new InvalidOperationException($"Queue type for queue {queue} has not been registered.");
 
 		var typeArguments = Type.GetType(assemblyName);
+		_queueTypes.TryAdd(queue, typeArguments);
 
 		return typeArguments;
 	}

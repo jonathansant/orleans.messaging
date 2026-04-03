@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/tests/">
-    <Project Path="apphost/Orleans.Messaging.MemoryAppHost/Orleans.Messaging.MemoryAppHost.csproj" />
+    <Project Path="tests/Orleans.Messaging.MemoryAppHost/Orleans.Messaging.MemoryAppHost.csproj" />
     <Project Path="tests/Orleans.Messaging.Tests.Grains/Orleans.Messaging.Tests.Grains.csproj" />
     <Project Path="tests/Orleans.Messaging.Tests.Kafka.SiloHost/Orleans.Messaging.Tests.Kafka.SiloHost.csproj" />
     <Project Path="tests/Orleans.Messaging.Tests.Kafka/Orleans.Messaging.Tests.Kafka.csproj" />

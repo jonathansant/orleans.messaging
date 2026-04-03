@@ -28,6 +28,7 @@ public class SubscribeTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("match", "test"));
@@ -51,6 +52,7 @@ public class SubscribeTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern("order", o => o.PatternType = PatternType.Substring)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		await _client.Produce<TestMessage>(Topic, "order-123", new TestMessage("order-1", "test"));
@@ -74,6 +76,7 @@ public class SubscribeTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(@"^payment-\d+$", o => o.PatternType = PatternType.Regex)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		await _client.Produce<TestMessage>(Topic, "payment-100", new TestMessage("match-1", "test"));

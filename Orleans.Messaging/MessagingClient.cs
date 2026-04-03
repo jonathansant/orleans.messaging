@@ -20,10 +20,10 @@ public class MessagingClient(
 	string serviceKey
 ) : IMessagingClient
 {
-	private readonly ISubscriptionClient _subscriptionClient = serviceProvider.GetRequiredKeyedService<ISubscriptionClient>(serviceKey);
-	private readonly IProducerClient _producerClient = serviceProvider.GetRequiredKeyedService<IProducerClient>(serviceKey);
 	private const char PipeSeparator = '|';
 	private const char SlashSeparator = '/';
+	private readonly IProducerClient _producerClient = serviceProvider.GetRequiredKeyedService<IProducerClient>(serviceKey);
+	private readonly ISubscriptionClient _subscriptionClient = serviceProvider.GetRequiredKeyedService<ISubscriptionClient>(serviceKey);
 
 	public Task<string> Subscribe<TMessage>(Action<SubscriptionBuilder<TMessage>> configure)
 	{
@@ -38,9 +38,9 @@ public class MessagingClient(
 
 	public Task Unsubscribe<TMessage>(TopicSubscription subscription)
 		=> Unsubscribe<TMessage>(
-			queueName: subscription.TopicName,
-			subscriptionPattern: subscription.SubscriptionPattern,
-			subscriptionId: subscription.SubscriptionId
+			subscription.TopicName,
+			subscription.SubscriptionPattern,
+			subscription.SubscriptionId
 		);
 
 	public Task Unsubscribe<TMessage>(string subscriptionId)
@@ -52,7 +52,7 @@ public class MessagingClient(
 		var grainParts = grainId.Split(SlashSeparator);
 		var (_, _, queue, pattern) = (grainParts[0], grainParts[1], grainParts[2], grainParts[3]);
 
-		return _subscriptionClient.Unsubscribe<TMessage>(serviceKey, queue, pattern, subscriptionPart);
+		return _subscriptionClient.Unsubscribe<TMessage>(serviceKey, queue, pattern, subscriptionId);
 	}
 
 	public Task Unsubscribe<TMessage>(string queueName, string subscriptionPattern, string subscriptionId)

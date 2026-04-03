@@ -24,8 +24,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Orleans.Messaging.Memory\Orleans.Messaging.Memory.csproj" />
+    <ProjectReference Include="..\Orleans.Messaging.MemoryAppHost\Orleans.Messaging.MemoryAppHost.csproj" />
     <ProjectReference Include="..\Orleans.Messaging.Tests.Grains\Orleans.Messaging.Tests.Grains.csproj" />
-    <ProjectReference Include="..\..\apphost\Orleans.Messaging.MemoryAppHost\Orleans.Messaging.MemoryAppHost.csproj" />
   </ItemGroup>
 
 </Project>

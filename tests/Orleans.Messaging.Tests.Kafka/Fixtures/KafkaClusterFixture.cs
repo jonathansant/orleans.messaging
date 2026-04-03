@@ -25,7 +25,11 @@ public class KafkaClusterFixture : IAsyncLifetime
 
 		// Wait for the silo to be ready and the ConsumerGrainService to position offsets
 		// at the end of the topic before any test produces messages (ConsumeMode.Last).
+#if DEBUG
+		await Task.Delay(TimeSpan.FromSeconds(15));
+#else
 		await Task.Delay(TimeSpan.FromSeconds(5));
+#endif
 
 		_clientHost = Host.CreateDefaultBuilder()
 			.UseOrleansClient(c => c.UseLocalhostClustering(30001))

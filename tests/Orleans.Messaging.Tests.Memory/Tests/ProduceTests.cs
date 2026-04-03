@@ -28,6 +28,7 @@ public class ProduceTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("hello", "test"));
@@ -52,6 +53,7 @@ public class ProduceTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		for (var i = 0; i < count; i++)
@@ -76,6 +78,7 @@ public class ProduceTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		var msg = new TestMessage("with-headers", "test").AsMessage(messageKey);

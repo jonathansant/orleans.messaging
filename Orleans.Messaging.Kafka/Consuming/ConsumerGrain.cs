@@ -148,7 +148,7 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 				{
 					LogMessagePush(subscriptionMessages);
 
-					var subscriptionGrain = _digestingService.GetSubscriptionGrain(_keyData.TopicId, subscriptionMessages.Key);
+					var subscriptionGrain =  await _digestingService.GetSubscriptionGrain(_keyData.TopicId, subscriptionMessages.Key);
 					await subscriptionGrain.Push(messages);
 
 					if (_topicConfig.ProcessingFailedHandlingMode is ProcessingFailedHandlingMode.AckOnComplete)

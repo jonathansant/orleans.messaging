@@ -1,3 +1,5 @@
+using Projects;
+
 namespace Orleans.Messaging.Tests.Memory.Fixtures;
 
 public class MemoryClusterFixture : IAsyncLifetime
@@ -11,22 +13,27 @@ public class MemoryClusterFixture : IAsyncLifetime
 	public async Task InitializeAsync()
 	{
 		var appBuilder = await DistributedApplicationTestingBuilder
-			.CreateAsync<Projects.Orleans_Messaging_MemoryAppHost>();
+			.CreateAsync<Orleans_Messaging_MemoryAppHost>();
 
 		_app = await appBuilder.BuildAsync();
 		await _app.StartAsync();
 
 		// Wait for the silo to be ready before connecting
+#if DEBUG
+		await Task.Delay(TimeSpan.FromSeconds(15));
+#else
 		await Task.Delay(TimeSpan.FromSeconds(3));
+#endif
 
 		_clientHost = Host.CreateDefaultBuilder()
-			.UseOrleansClient(c => c.UseLocalhostClustering(gatewayPort: 30000))
+			.UseOrleansClient(c => c.UseLocalhostClustering(30000))
 			.ConfigureServices(services =>
-			{
-				new MessagingMemoryBuilder(services, MessageBrokerNames.DefaultBroker)
-					.WithStoreName("messaging")
-					.Build();
-			})
+				{
+					new MessagingMemoryBuilder(services, MessageBrokerNames.DefaultBroker)
+						.WithStoreName("messaging")
+						.Build();
+				}
+			)
 			.Build();
 
 		await _clientHost.StartAsync();

@@ -9,7 +9,7 @@ namespace Orleans.Messaging.Memory.Config;
 
 public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 {
-	public MessagingMemoryBuilder(ISiloBuilder siloBuilder, string? key)
+	internal MessagingMemoryBuilder(ISiloBuilder siloBuilder, string? key)
 		: base(siloBuilder, key)
 	{
 		RegisterMemoryServices(key);
@@ -52,6 +52,25 @@ public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 	public MessagingMemoryBuilder WithOptions(Action<MessagingMemoryOptions> configure)
 	{
 		OptionsDelegate += configure;
+
 		return this;
+	}
+}
+
+public static class HostBuilderExtensions
+{
+	extension(ISiloBuilder hostBuilder)
+	{
+		public MessagingMemoryBuilder AddMessagingMemory(string serviceKey)
+			=> new(hostBuilder, serviceKey);
+
+		public ISiloBuilder AddMessagingMemory(string serviceKey, Action<MessagingMemoryBuilder> cfg)
+		{
+			var builder = new MessagingMemoryBuilder(hostBuilder, serviceKey);
+			cfg(builder);
+			builder.Build();
+
+			return hostBuilder;
+		}
 	}
 }

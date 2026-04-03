@@ -8,8 +8,8 @@ public interface IMessagingRuntimeOptionsService
 	public Type OptionsMonitorType { get; }
 
 	public MessagingOptions GetOptions();
-	Type GetSubscriptionGrainType(string queue);
-	Type GetProducerGrainType(string queue);
+	ValueTask<Type> GetSubscriptionGrainType(string queue);
+	ValueTask<Type> GetProducerGrainType(string queue);
 }
 
 public abstract class MessagingRuntimeOptionsService : IMessagingRuntimeOptionsService
@@ -33,7 +33,7 @@ public abstract class MessagingRuntimeOptionsService : IMessagingRuntimeOptionsS
 		=> ((IOptionsMonitor<MessagingOptions>)_serviceProvider.GetRequiredService(OptionsMonitorType))
 			.Get(_serviceKey);
 
-	public abstract Type GetSubscriptionGrainType(string queue);
+	public abstract ValueTask<Type> GetSubscriptionGrainType(string queue);
 
-	public abstract Type GetProducerGrainType(string queue);
+	public abstract ValueTask<Type> GetProducerGrainType(string queue);
 }

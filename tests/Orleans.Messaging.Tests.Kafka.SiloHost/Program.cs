@@ -8,9 +8,16 @@ var builder = Host.CreateApplicationBuilder(args);
 
 var bootstrapServer = builder.Configuration.GetConnectionString("kafka") ?? "localhost:9092";
 
+var siloPort = builder.Configuration.GetValue<int>("Orleans:SiloPort", 11111);
+var gatewayPort = builder.Configuration.GetValue<int>("Orleans:GatewayPort", 30000);
+var primarySiloPort = builder.Configuration.GetValue<int?>("Orleans:PrimarySiloPort", null);
+var primarySiloEndpoint = primarySiloPort.HasValue
+	? new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, primarySiloPort.Value)
+	: null;
+
 builder.UseOrleans(silo =>
 	{
-		silo.UseLocalhostClustering(11112, 30001);
+		silo.UseLocalhostClustering(siloPort, gatewayPort, primarySiloEndpoint);
 		silo.AddMemoryGrainStorage("messaging");
 		// silo.AddStartupTask<PlaygroundActivate>();
 		silo.AddStartupTask(

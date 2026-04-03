@@ -1,12 +1,12 @@
-using Orleans.Messaging.Consuming;
-using Orleans.Messaging.Memory.Config;
-using Orleans.Messaging.Memory.Utilities;
-using Orleans.Messaging.Subscription;
-using Orleans.Concurrency;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text;
 using System.Web;
+using Orleans.Concurrency;
+using Orleans.Messaging.Consuming;
+using Orleans.Messaging.Memory.Config;
+using Orleans.Messaging.Memory.Utilities;
+using Orleans.Messaging.Subscription;
 
 namespace Orleans.Messaging.Memory.Producing;
 
@@ -17,9 +17,7 @@ public static partial class GrainFactoryExtensions
 		string serviceKey,
 		string queueName,
 		string partitioningKey
-	) => grainFactory.GetGrain<IMemoryProducerGrain<TMessage>>(
-		GenerateProducerGrainKey(serviceKey, queueName, partitioningKey)
-	);
+	) => grainFactory.GetGrain<IMemoryProducerGrain<TMessage>>(GenerateProducerGrainKey(serviceKey, queueName, partitioningKey));
 
 	public static string GenerateProducerGrainKey(string serviceKey, string queueName, string partitioningKey)
 		=> $"orleansMessagingMemoryProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}";
@@ -39,17 +37,16 @@ public interface IMemoryProducerGrain<TMessage> : IMemoryProducerGrain
 
 public class MemoryProducerGrain<TMessage> : Grain, IMemoryProducerGrain<TMessage>
 {
-	private readonly ILogger<MemoryProducerGrain<TMessage>> _logger;
-	private readonly IGrainFactory _grainFactory;
+	private static readonly Type MessageType = typeof(TMessage);
 	private readonly IDigestingUtilityService _digestingUtilityService;
-	private readonly MessagingMemoryOptions _options;
+	private readonly IGrainFactory _grainFactory;
 
 	private readonly MemoryProducerGrainKey _key;
-
-	private static readonly Type MessageType = typeof(TMessage);
+	private readonly ILogger<MemoryProducerGrain<TMessage>> _logger;
+	private readonly MessagingMemoryOptions _options;
+	private readonly IMessagingMemoryRuntimeOptionsService _runtimeOptionsService;
 	private readonly IPersistentState<MemoryProducerGrainState> _store;
 	private IGrainTimer _timer;
-	private readonly IMessagingMemoryRuntimeOptionsService _runtimeOptionsService;
 
 	public MemoryProducerGrain(
 		ILogger<MemoryProducerGrain<TMessage>> logger,
@@ -81,6 +78,30 @@ public class MemoryProducerGrain<TMessage> : Grain, IMemoryProducerGrain<TMessag
 	public Task Activate() => Task.CompletedTask;
 	public Task ActivateOneWay() => Task.CompletedTask;
 
+	public async Task Produce(Immutable<Message> message)
+	{
+		var subscriptionBatches = new Dictionary<string, List<BatchResult>>();
+		_digestingUtilityService.PopulateSubscriptionBatch(ref subscriptionBatches, message.Value);
+
+		foreach (var batch in subscriptionBatches)
+			_store.State.MessageQueue
+				.GetOrAdd(batch.Key, _ => ([], 0))
+				.Batch
+				.AddRange(batch.Value.Select(x => x.Message));
+
+		await _store.WriteStateAsync();
+	}
+
+	public Task Produce(Immutable<Message<TMessage>> message)
+		=> Produce((message.Value as Message).AsImmutable());
+
+	public ValueTask RefreshSubscriptionList(Immutable<Dictionary<string, PatternOptions>> subscriptionTable)
+	{
+		_digestingUtilityService.UpdateCache(subscriptionTable.Value);
+
+		return ValueTask.CompletedTask;
+	}
+
 	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
 		await base.OnActivateAsync(cancellationToken);
@@ -95,38 +116,13 @@ public class MemoryProducerGrain<TMessage> : Grain, IMemoryProducerGrain<TMessag
 		_timer = this.RegisterGrainTimer(
 			async _ => await ProduceToSubscriptions(),
 			(object)null,
-			new GrainTimerCreationOptions
+			new()
 			{
 				DueTime = TimeSpan.FromMilliseconds(_options.ProduceInitDelayMs),
 				Period = TimeSpan.FromMilliseconds(_options.ProducePollRateMs),
 				Interleave = false
 			}
 		);
-	}
-
-	public async Task Produce(Immutable<Message> message)
-	{
-		var subscriptionBatches = new Dictionary<string, List<BatchResult>>();
-		_digestingUtilityService.PopulateSubscriptionBatch(ref subscriptionBatches, message.Value);
-
-		foreach (var batch in subscriptionBatches)
-		{
-			_store.State.MessageQueue
-				.GetOrAdd(batch.Key, _ => ([], 0))
-				.Batch
-				.AddRange(batch.Value.Select(x => x.Message));
-		}
-
-		await _store.WriteStateAsync();
-	}
-
-	public Task Produce(Immutable<Message<TMessage>> message)
-		=> Produce((message.Value as Message).AsImmutable());
-
-	public ValueTask RefreshSubscriptionList(Immutable<Dictionary<string, PatternOptions>> subscriptionTable)
-	{
-		_digestingUtilityService.UpdateCache(subscriptionTable.Value);
-		return ValueTask.CompletedTask;
 	}
 
 	public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
@@ -146,7 +142,7 @@ public class MemoryProducerGrain<TMessage> : Grain, IMemoryProducerGrain<TMessag
 			{
 				try
 				{
-					var subscriptionGrain = _digestingUtilityService.GetSubscriptionGrain(_key.QueueName, subBatch.Key);
+					var subscriptionGrain = await _digestingUtilityService.GetSubscriptionGrain(_key.QueueName, subBatch.Key);
 					await subscriptionGrain.Push(subBatch.Value.Batch.ToImmutableList());
 
 					LogMessagePush(subBatch);
@@ -184,9 +180,7 @@ public class MemoryProducerGrain<TMessage> : Grain, IMemoryProducerGrain<TMessag
 			.Where(failedBatch => _options.ProducerRetryOptions.MaxRetries > failedBatch.Value.RetryCount);
 
 		foreach (var failedBatch in validFailedBatches)
-		{
 			_store.State.MessageQueue.TryAdd(failedBatch.Key, failedBatch.Value);
-		}
 	}
 
 	private void LogMessagePush(KeyValuePair<string, (List<Message> Batch, int RetryCount)> messages)

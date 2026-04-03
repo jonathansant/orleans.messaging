@@ -28,17 +28,19 @@ public class UnsubscribeTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		// Produce before unsubscribe - should be received
-		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("before", "test"));
+		await _client.Produce<TestMessage>(Topic, messageKey, new("before", "test"));
 		var initialMessages = await WaitForMessages(receiver, 1);
 		initialMessages.Should().HaveCount(1);
 
 		await _client.Unsubscribe<TestMessage>(subscriptionId);
+		await Task.Delay(6000);
 
 		// Produce after unsubscribe - should NOT be received
-		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("after", "test"));
+		await _client.Produce<TestMessage>(Topic, messageKey, new("after", "test"));
 		await Task.Delay(1500);
 
 		var finalMessages = await receiver.GetReceivedMessages();
@@ -58,9 +60,10 @@ public class UnsubscribeTests : IClassFixture<MemoryClusterFixture>
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
-		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("before", "test"));
+		await _client.Produce<TestMessage>(Topic, messageKey, new("before", "test"));
 		await WaitForMessages(receiver, 1);
 
 		var topicSubscription = new TopicSubscription(
@@ -70,8 +73,9 @@ public class UnsubscribeTests : IClassFixture<MemoryClusterFixture>
 			messageKey
 		);
 		await _client.Unsubscribe<TestMessage>(topicSubscription);
+		await Task.Delay(6000);
 
-		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("after", "test"));
+		await _client.Produce<TestMessage>(Topic, messageKey, new("after", "test"));
 		await Task.Delay(1500);
 
 		var messages = await receiver.GetReceivedMessages();
@@ -81,16 +85,19 @@ public class UnsubscribeTests : IClassFixture<MemoryClusterFixture>
 	private static async Task<List<Message<TestMessage>>> WaitForMessages(
 		ITestReceiverGrain grain,
 		int expectedCount,
-		TimeSpan? timeout = null)
+		TimeSpan? timeout = null
+	)
 	{
 		var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
 		while (DateTime.UtcNow < deadline)
 		{
 			var msgs = await grain.GetReceivedMessages();
+
 			if (msgs.Count >= expectedCount)
 				return msgs;
 			await Task.Delay(100);
 		}
+
 		return await grain.GetReceivedMessages();
 	}
 }

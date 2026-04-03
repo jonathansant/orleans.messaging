@@ -1,24 +1,25 @@
-using Orleans.Messaging.Subscription;
-using Orleans.Messaging.Utils;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using Orleans.Messaging.Subscription;
+using Orleans.Messaging.Utils;
 using GrainFactoryExtensions = Orleans.Messaging.Subscription.GrainFactoryExtensions;
 
 namespace Orleans.Messaging.Consuming;
 
 public interface IDigestingUtilityService
 {
+	bool HasSubscriptions { get; }
+
 	void PopulateSubscriptionBatch<TBatch>(
 		ref Dictionary<string, List<TBatch>> subscriptionBatches,
 		Message message,
 		Func<Message, TBatch> transformResult = null
-	) where TBatch : BatchResult, new();
-
-	bool HasSubscriptions { get; }
+	)
+		where TBatch : BatchResult, new();
 
 	void UpdateCache(Dictionary<string, PatternOptions> subscriptionTable);
 
-	ISubscriptionGrain GetSubscriptionGrain(string queue, string subscriptionKey);
+	ValueTask<ISubscriptionGrain> GetSubscriptionGrain(string queue, string subscriptionKey);
 }
 
 internal class DigestingUtilityService(
@@ -37,7 +38,8 @@ internal class DigestingUtilityService(
 		ref Dictionary<string, List<TBatch>> subscriptionBatches,
 		Message message,
 		Func<Message, TBatch> transformResult = null
-	) where TBatch : BatchResult, new()
+	)
+		where TBatch : BatchResult, new()
 	{
 		List<KeyValuePair<string, PatternOptions>> subscriptions;
 		if (_subscriptionTable.TryGetValue(message.Key, out var patternOptions) && patternOptions.PatternType == PatternType.Exact)
@@ -68,10 +70,10 @@ internal class DigestingUtilityService(
 
 		_subscriptionTable = subscriptionTable;
 		foreach (var kvp in _subscriptionTable)
-			_subscriptionRegexes.TryAdd(kvp.Key, new Regex(kvp.Key, RegexOptions.Compiled));
+			_subscriptionRegexes.TryAdd(kvp.Key, new(kvp.Key, RegexOptions.Compiled));
 	}
 
-	public ISubscriptionGrain GetSubscriptionGrain(string queue, string subscriptionKey)
+	public async ValueTask<ISubscriptionGrain> GetSubscriptionGrain(string queue, string subscriptionKey)
 	{
 		var grainKey = GrainFactoryExtensions.GenerateSubscriptionGrainKey(
 			serviceKey,
@@ -79,7 +81,7 @@ internal class DigestingUtilityService(
 			subscriptionKey
 		);
 
-		var subscriptionGrainType = runtimeOptionsService.GetSubscriptionGrainType(queue);
+		var subscriptionGrainType = await runtimeOptionsService.GetSubscriptionGrainType(queue);
 		var subscriptionGrain = (ISubscriptionGrain)grainFactory.GetGrain(subscriptionGrainType, grainKey);
 
 		return subscriptionGrain;
@@ -93,6 +95,7 @@ public sealed class DigestingUtilityServiceFactory(
 	public IDigestingUtilityService Create(string serviceKey, string queueName)
 	{
 		var runtimeOptionsService = serviceProvider.GetRequiredKeyedService<IMessagingRuntimeOptionsService>(serviceKey);
+
 		return ActivatorUtilities.CreateInstance<DigestingUtilityService>(
 			serviceProvider,
 			serviceKey,

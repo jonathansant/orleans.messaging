@@ -1,9 +1,9 @@
+using System.Collections.Immutable;
+using System.Web;
+using Orleans.Concurrency;
 using Orleans.Messaging.Config;
 using Orleans.Messaging.FlowControl;
 using Orleans.Messaging.Utils;
-using Orleans.Concurrency;
-using System.Collections.Immutable;
-using System.Web;
 
 namespace Orleans.Messaging.Subscription;
 
@@ -38,21 +38,18 @@ public interface ISubscriptionGrain : IGrainWithStringKey
 	Task Unsubscribe(Immutable<string> subscriptionId);
 }
 
-public interface ISubscriptionGrain<TMessage> : ISubscriptionGrain
-{
-}
+public interface ISubscriptionGrain<TMessage> : ISubscriptionGrain { }
 
 public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 {
-	private readonly ILogger<SubscriptionGrain<TMessage>> _logger;
-	private readonly IPersistentState<SubscriptionGrainState> _store;
 	private readonly SubscriptionGrainKey _key;
-	private readonly Dictionary<string, MethodInfo> _subscriptionMethods = new();
+	private readonly ILogger<SubscriptionGrain<TMessage>> _logger;
 	private readonly MessagingOptions _options;
-	private string? _primaryKey;
-	private string PrimaryKey => _primaryKey ??= this.GetPrimaryKeyAny();
+	private readonly IPersistentState<SubscriptionGrainState> _store;
+	private readonly Dictionary<string, MethodInfo> _subscriptionMethods = new();
 
 	private readonly ScheduledThrottledAction _writeThrottledAction;
+	private string? _primaryKey;
 
 	public SubscriptionGrain(
 		ILogger<SubscriptionGrain<TMessage>> logger,
@@ -85,6 +82,8 @@ public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 		);
 	}
 
+	private string PrimaryKey => _primaryKey ??= this.GetPrimaryKeyAny();
+
 	public async Task PushOneWay(ImmutableList<Message> batch)
 		=> await Push(batch);
 
@@ -103,9 +102,9 @@ public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 			{
 				var messagesToPush = _options.EnsureHandlerDeliveryOnFailure
 						? messageBatch
-							.Where(x => (!_store.State.FailedMessageIdsWithSubsMetas.ContainsKey(x.MessageId))
-							            || (_store.State.FailedMessageIdsWithSubsMetas.TryGetValue(x.MessageId, out var metas)
-							                && metas.Contains(subscription.Value.ToSubscriptionIdString()))
+							.Where(x => !_store.State.FailedMessageIdsWithSubsMetas.ContainsKey(x.MessageId)
+										|| (_store.State.FailedMessageIdsWithSubsMetas.TryGetValue(x.MessageId, out var metas)
+											&& metas.Contains(subscription.Value.ToSubscriptionIdString()))
 							)
 							.ToImmutableList()
 						: messageBatch
@@ -150,12 +149,10 @@ public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 					);
 
 					if (_options.EnsureHandlerDeliveryOnFailure)
-					{
 						messageIds.ForEach(m
 							=> _store.State.FailedMessageIdsWithSubsMetas.GetOrAdd(m, _ => [])
 								.Add(subscription.Value.ToSubscriptionIdString())
 						);
-					}
 
 					isFaulted = true;
 					messageFailedMetas.Add(
@@ -194,6 +191,7 @@ public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 		else
 		{
 			var patternOpts = _store.State.Subscriptions[key].PatternOptions;
+
 			// todo: this needs to be improved by doing it by subscription instead of by pattern
 			if (patternOpts.PatternType != subscriptionMeta.Value.PatternOptions.PatternType)
 				throw new InvalidOperationException(

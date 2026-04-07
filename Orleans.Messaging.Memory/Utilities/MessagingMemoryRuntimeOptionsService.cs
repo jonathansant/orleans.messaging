@@ -13,7 +13,7 @@ public interface IMessagingMemoryRuntimeOptionsService : IMessagingRuntimeOption
 public class MessagingMemoryRuntimeOptionsService(
 	IServiceProvider serviceProvider,
 	string serviceKey
-) : MessagingRuntimeOptionsService(serviceKey, serviceProvider), IMessagingMemoryRuntimeOptionsService
+) : MessagingRuntimeOptionsService, IMessagingMemoryRuntimeOptionsService
 {
 	private readonly Type _producerGrainType = typeof(IMemoryProducerGrain<>);
 	private readonly ConcurrentDictionary<string, Type> _producerGrainTypes = new();
@@ -21,8 +21,6 @@ public class MessagingMemoryRuntimeOptionsService(
 	private readonly Type _subscriptionGrainType = typeof(ISubscriptionGrain<>);
 	private readonly ConcurrentDictionary<string, Type> _subscriptionGrainTypes = new();
 	private IGrainFactory _grainFactory = serviceProvider.GetRequiredService<IGrainFactory>();
-
-	public override Type OptionsType { get; } = typeof(MessagingMemoryOptions);
 
 	public override async ValueTask<Type> GetSubscriptionGrainType(string queue)
 	{

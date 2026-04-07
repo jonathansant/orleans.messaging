@@ -33,35 +33,7 @@ public class KafkaClusterFixture : IAsyncLifetime
 
 		_clientHost = Host.CreateDefaultBuilder()
 			.UseOrleansClient(c => c.UseLocalhostClustering(30001))
-			.ConfigureServices(services =>
-				{
-					new MessagingKafkaBuilder(services, MessageBrokerNames.DefaultBroker)
-						.WithOptions(opts =>
-							{
-								opts.StoreName = "messaging";
-								opts.BrokerList = [bootstrapServer];
-								opts.ConsumerGroupId = $"test-client-{Guid.NewGuid():N}";
-								opts.ConsumeMode = ConsumeMode.Last;
-								opts.PollRate = TimeSpan.FromMilliseconds(50);
-								opts.BatchSize = 10;
-								opts.Topics =
-								[
-									new()
-									{
-										Name = "test-messages",
-										ContractType = typeof(TestMessage),
-										AutoCreate = true,
-										IsPartitioned = false,
-										Partitions = 1,
-										ReplicationFactor = 1,
-										Type = TopicType.InOut
-									}
-								];
-							}
-						)
-						.Build();
-				}
-			)
+			.AddMessagingKafkaClient(MessageBrokerNames.DefaultBroker, _ => { })
 			.Build();
 
 		await _clientHost.StartAsync();

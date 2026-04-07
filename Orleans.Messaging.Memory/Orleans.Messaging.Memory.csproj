@@ -3,6 +3,7 @@
   <!-- vendor packages -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
 
   <!-- packages -->

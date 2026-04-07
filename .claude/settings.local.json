@@ -7,7 +7,8 @@
       "Bash(grep -r \"PORT\\\\|port\\\\|Server\\\\|launch\\\\|run\" /Users/jonathansant/Developer/orleans.messaging --include=*.json --include=*.xml --include=*.cs)",
       "Bash(git mv:*)",
       "Bash(git worktree:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(/usr/local/share/dotnet/dotnet build:*)"
     ]
   }
 }

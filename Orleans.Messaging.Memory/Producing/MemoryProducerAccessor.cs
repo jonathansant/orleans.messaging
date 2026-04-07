@@ -1,4 +1,5 @@
 using Orleans.Messaging.Accessors;
+using Orleans.Messaging.Config;
 using Orleans.Messaging.Memory.Config;
 using Orleans.Concurrency;
 
@@ -10,8 +11,8 @@ public class MemoryProducerAccessor(
 	IServiceProvider serviceProvider
 ) : IProducerAccessor
 {
-	private readonly MessagingMemoryOptions _options = (MessagingMemoryOptions)serviceProvider
-		.GetRequiredKeyedService<IMessagingRuntimeOptionsService>(serviceKey)
+	private readonly IMessagingMemoryOptions _options = (IMessagingMemoryOptions)serviceProvider
+		.GetRequiredKeyedService<IMessagingOptionsService>(serviceKey)
 		.GetOptions();
 
 	public Task Produce<TMessage>(string queueName, string key, Message<TMessage> message)

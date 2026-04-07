@@ -11,24 +11,14 @@ namespace Orleans.Messaging.Kafka.Config;
 
 public class MessagingKafkaBuilder : MessagingBuilder<MessagingKafkaOptions>
 {
-	internal MessagingKafkaBuilder(ISiloBuilder siloBuilder, string? key)
+	internal MessagingKafkaBuilder(ISiloBuilder siloBuilder, string key)
 		: base(siloBuilder, key)
 	{
 		RegisterKafkaServices(key, true);
 	}
 
-	// todo: create a client side builder registering only needed services and remove this
-	public MessagingKafkaBuilder(IServiceCollection services, string? key)
-		: base(services, key)
-	{
-		RegisterKafkaServices(key, false);
-	}
-
-	private void RegisterKafkaServices(string? key, bool isSilo)
-	{
-		key ??= "defaultBroker";
-
-		ConfigureServicesDelegate += services =>
+	private void RegisterKafkaServices(string key, bool isSilo)
+		=> ConfigureServicesDelegate += services =>
 		{
 			services.AddKeyedSingleton<IProducerClient, ProducerClient>(
 				key,
@@ -42,6 +32,13 @@ public class MessagingKafkaBuilder : MessagingBuilder<MessagingKafkaOptions>
 			services.AddKeyedSingleton<IMessagingRuntimeOptionsService, MessagingKafkaRuntimeOptionsService>(
 				key,
 				(sp, _) => ActivatorUtilities.CreateInstance<MessagingKafkaRuntimeOptionsService>(sp, key)
+			);
+			services.AddKeyedSingleton<IMessagingOptionsService>(
+				key,
+				(sp, _) => new MessagingOptionsService<MessagingKafkaOptions>(
+					sp.GetRequiredService<IOptionsMonitor<MessagingKafkaOptions>>(),
+					key
+				)
 			);
 			services.AddKeyedSingleton(
 				key,
@@ -69,7 +66,6 @@ public class MessagingKafkaBuilder : MessagingBuilder<MessagingKafkaOptions>
 				services.AddGrainService<ConsumerGrainService>().AddSingleton<IConsumerGrainServiceClient, ConsumerGrainServiceClient>();
 			}
 		};
-	}
 
 	public MessagingKafkaBuilder WithOptions(Action<MessagingKafkaOptions> configure)
 	{

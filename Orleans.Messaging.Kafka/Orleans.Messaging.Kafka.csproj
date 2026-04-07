@@ -3,6 +3,7 @@
   <!-- vendor packages -->
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Orleans.Sdk" />
     <PackageReference Include="Polly" />
   </ItemGroup>

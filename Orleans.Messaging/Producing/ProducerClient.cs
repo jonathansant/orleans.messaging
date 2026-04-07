@@ -15,8 +15,8 @@ public class ProducerClient(
 	string serviceKey
 ) : IProducerClient
 {
-	private readonly MessagingOptions _options = serviceProvider
-		.GetRequiredKeyedService<IMessagingRuntimeOptionsService>(serviceKey)
+	private readonly IMessagingOptions _options = serviceProvider
+		.GetRequiredKeyedService<IMessagingOptionsService>(serviceKey)
 		.GetOptions();
 
 	private readonly IProducerAccessor _producerAccessor = serviceProvider.GetRequiredKeyedService<IProducerAccessor>(serviceKey);

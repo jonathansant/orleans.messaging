@@ -51,9 +51,7 @@ public class SubscriptionIndexGrain : Grain, ISubscriptionIndexGrain
 		_key = this.ParseKey<SubscriptionIndexGrainKey>(SubscriptionIndexGrainKey.Template);
 
 		_consumerAccessor = serviceProvider.GetRequiredKeyedService<IConsumerAccessor>(_key.ServiceKey);
-		var runtimeService = serviceProvider.GetRequiredKeyedService<IMessagingRuntimeOptionsService>(_key.ServiceKey);
-
-		_options = runtimeService.GetOptions();
+		_options = (MessagingOptions)serviceProvider.GetRequiredKeyedService<IMessagingOptionsService>(_key.ServiceKey).GetOptions();
 
 		_store = persistentStateFactory.Create<SubscriptionIndexGrainState>(
 			grainContext,

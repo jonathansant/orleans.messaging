@@ -63,8 +63,7 @@ public class SubscriptionGrain<TMessage> : Grain, ISubscriptionGrain<TMessage>
 		_key = this.ParseKey<SubscriptionGrainKey>(SubscriptionGrainKey.Template);
 		_key.Pattern = HttpUtility.UrlDecode(_key.Pattern);
 
-		var runtimeOptionsService = serviceProvider.GetRequiredKeyedService<IMessagingRuntimeOptionsService>(_key.ServiceKey);
-		_options = runtimeOptionsService.GetOptions();
+		_options = (MessagingOptions)serviceProvider.GetRequiredKeyedService<IMessagingOptionsService>(_key.ServiceKey).GetOptions();
 
 		_store = persistentStateFactory.Create<SubscriptionGrainState>(
 			grainContext,

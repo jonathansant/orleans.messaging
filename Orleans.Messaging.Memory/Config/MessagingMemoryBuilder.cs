@@ -15,17 +15,8 @@ public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 		RegisterMemoryServices(key);
 	}
 
-	public MessagingMemoryBuilder(IServiceCollection services, string? key)
-		: base(services, key)
-	{
-		RegisterMemoryServices(key);
-	}
-
-	private void RegisterMemoryServices(string? key)
-	{
-		key ??= "defaultBroker";
-
-		ConfigureServicesDelegate += services =>
+	private void RegisterMemoryServices(string key)
+		=> ConfigureServicesDelegate += services =>
 		{
 			services.AddKeyedSingleton<IProducerClient, ProducerClient>(
 				key,
@@ -35,6 +26,13 @@ public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 			services.AddKeyedSingleton<IMessagingRuntimeOptionsService, MessagingMemoryRuntimeOptionsService>(
 				key,
 				(sp, _) => ActivatorUtilities.CreateInstance<MessagingMemoryRuntimeOptionsService>(sp, key)
+			);
+			services.AddKeyedSingleton<IMessagingOptionsService>(
+				key,
+				(sp, _) => new MessagingOptionsService<MessagingMemoryOptions>(
+					sp.GetRequiredService<IOptionsMonitor<MessagingMemoryOptions>>(),
+					key
+				)
 			);
 
 			services.AddKeyedSingleton<IProducerAccessor, MemoryProducerAccessor>(
@@ -47,7 +45,6 @@ public class MessagingMemoryBuilder : MessagingBuilder<MessagingMemoryOptions>
 				(provider, _) => ActivatorUtilities.CreateInstance<MemoryConsumerAccessor>(provider, key)
 			);
 		};
-	}
 
 	public MessagingMemoryBuilder WithOptions(Action<MessagingMemoryOptions> configure)
 	{

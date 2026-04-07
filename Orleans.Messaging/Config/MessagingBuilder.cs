@@ -11,17 +11,11 @@ public abstract class MessagingBuilder<TOptions>
 	private readonly IServiceCollection? _directServices;
 	private readonly ISiloBuilder? _siloBuilder;
 	protected Action<IServiceCollection> ConfigureServicesDelegate;
-	protected Action<TOptions> OptionsDelegate;
+	protected Action<TOptions> OptionsDelegate = _ => { };
 
 	protected MessagingBuilder(ISiloBuilder siloBuilder, string? key)
 	{
 		_siloBuilder = siloBuilder;
-		InitializeDefaultServices(key);
-	}
-
-	protected MessagingBuilder(IServiceCollection services, string? key)
-	{
-		_directServices = services;
 		InitializeDefaultServices(key);
 	}
 

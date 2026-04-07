@@ -27,13 +27,7 @@ public class MemoryClusterFixture : IAsyncLifetime
 
 		_clientHost = Host.CreateDefaultBuilder()
 			.UseOrleansClient(c => c.UseLocalhostClustering(30000))
-			.ConfigureServices(services =>
-				{
-					new MessagingMemoryBuilder(services, MessageBrokerNames.DefaultBroker)
-						.WithStoreName("messaging")
-						.Build();
-				}
-			)
+			.AddMessagingMemoryClient(MessageBrokerNames.DefaultBroker, b => { })
 			.Build();
 
 		await _clientHost.StartAsync();

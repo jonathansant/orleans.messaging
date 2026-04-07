@@ -1,5 +1,6 @@
 using Orleans.Concurrency;
 using Orleans.Messaging.Accessors;
+using Orleans.Messaging.Config;
 using Orleans.Messaging.Memory.Config;
 using Orleans.Messaging.Memory.Producing;
 using Orleans.Messaging.Memory.Utilities;
@@ -27,7 +28,7 @@ public class MemoryConsumerAccessor : IConsumerAccessor
 		_runtimeOptionsService =
 			(IMessagingMemoryRuntimeOptionsService)serviceProvider.GetRequiredKeyedService<IMessagingRuntimeOptionsService>(serviceKey);
 
-		_options = (MessagingMemoryOptions)_runtimeOptionsService.GetOptions();
+		_options = (MessagingMemoryOptions)serviceProvider.GetRequiredKeyedService<IMessagingOptionsService>(serviceKey).GetOptions();
 	}
 
 	public async Task RefreshSubscriptionList(string queue, string partition, Dictionary<string, PatternOptions> patterns)

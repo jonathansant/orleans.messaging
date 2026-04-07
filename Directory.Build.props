@@ -16,9 +16,9 @@
   <!-- Set common properties regarding assembly information and nuget packages -->
   <PropertyGroup>
     <Authors>Jonathan Sant</Authors>
-    <Copyright>© Jonathan Sant. All rights reserved.</Copyright>
-    <!-- todo: add license https://github.com/NuGet/Home/wiki/Packaging-License-within-the-nupkg-(Technical-Spec)
-    <PackageProjectUrl>https://github.com/jonathansant/orleans.messaging</PackageProjectUrl> -->
+    <Copyright>© 2026 Jonathan Sant</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/jonathansant/orleans.messaging</PackageProjectUrl>
     <!-- <PackageIcon>package-icon.png</PackageIcon> -->
     <PackageTags>Orleans C# .NET Messaging</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>

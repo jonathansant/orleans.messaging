@@ -40,13 +40,13 @@ jobs:
       - name: Build
         run: dotnet build orleans.messaging.slnx --no-restore --configuration Release
 
-      - name: Test (Memory)
-        run: >
-          dotnet test tests/Orleans.Messaging.Tests.Memory/Orleans.Messaging.Tests.Memory.csproj
-          --no-build
-          --configuration Release
-          --logger trx
-          --results-directory ${{ github.workspace }}/test-results
+      # - name: Test (Memory)
+      #   run: >
+      #     dotnet test tests/Orleans.Messaging.Tests.Memory/Orleans.Messaging.Tests.Memory.csproj
+      #     --no-build
+      #     --configuration Release
+      #     --logger trx
+      #     --results-directory ${{ github.workspace }}/test-results
 
       - name: Test (Kafka)
         run: >

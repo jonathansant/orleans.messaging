@@ -49,6 +49,17 @@ await client.Produce("orders", msg);
 var msg = new OrderCreated { ... }.AsMessage(key: orderId);
 ```
 
+### Silo vs. client setup
+
+There are two registration modes depending on where your service runs:
+
+| Mode | Extension method | Use when |
+|------|-----------------|----------|
+| **Silo** | `siloBuilder.AddMessagingKafka(key, ...)` / `siloBuilder.AddMessagingMemory(key, ...)` | Running inside an Orleans silo — registers full grain infrastructure for both producing and consuming |
+| **Client** | `hostBuilder.AddMessagingKafkaClient(key, ...)` / `hostBuilder.AddMessagingMemoryClient(key, ...)` | Running outside a silo (e.g., HTTP API, standalone worker that only publishes events) — registers a lean producer-only `IMessagingClient` |
+
+Both modes resolve the same `IMessagingClient` interface; the client mode simply omits consumer grain infrastructure that requires a silo.
+
 ### Service Keys (Multiple Brokers)
 
 Run multiple independent broker instances side by side using `MessageBrokerNames`:

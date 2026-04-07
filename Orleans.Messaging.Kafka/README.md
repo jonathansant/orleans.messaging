@@ -4,7 +4,8 @@ Kafka broker implementation for Orleans.Messaging. Wraps [Confluent.Kafka](https
 
 ## Table of Contents
 
-- [Setup](#setup)
+- [Silo setup](#silo-setup)
+- [Client setup (outside silo)](#client-setup-outside-silo)
 - [Configuration](#configuration)
   - [Broker options](#broker-options)
   - [Security](#security)
@@ -20,22 +21,14 @@ Kafka broker implementation for Orleans.Messaging. Wraps [Confluent.Kafka](https
 
 ---
 
-## Setup
+## Silo setup
 
-Register the Kafka provider on your Orleans silo builder, then call `.Build()`:
+Register the Kafka provider on your `ISiloBuilder` using the `AddMessagingKafka` extension. Two
+forms are available — inline (auto-calls `Build()`) or returned builder (you call `Build()` yourself):
 
 ```csharp
-siloBuilder.ConfigureServices(services =>
-{
-    // register the builder under a service key
-    services.AddKeyedSingleton<MessagingKafkaBuilder>(
-        MessageBrokerNames.DefaultBroker,
-        (sp, _) => new MessagingKafkaBuilder(siloBuilder, MessageBrokerNames.DefaultBroker)
-    );
-});
-
-// configure topics after the DI container is built
-app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, builder) =>
+// Option A — inline, Build() is called automatically
+siloBuilder.AddMessagingKafka(MessageBrokerNames.DefaultBroker, builder =>
 {
     builder
         .WithOptions(opts =>
@@ -44,9 +37,22 @@ app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, buil
             opts.ConsumerGroupId = "my-service";
             opts.ConsumeMode = ConsumeMode.LastCommittedMessage;
         })
-        .WithProducerRetries(maxRetries: 3, maxRetryDelay: TimeSpan.FromMilliseconds(50))
-        .Build();
+        .WithProducerRetries(maxRetries: 3, maxRetryDelay: TimeSpan.FromMilliseconds(50));
+});
 
+// Option B — returned builder; call Build() when ready
+var kafkaBuilder = siloBuilder.AddMessagingKafka(MessageBrokerNames.DefaultBroker);
+kafkaBuilder
+    .WithOptions(opts => { opts.BrokerList = new[] { "localhost:9092" }; })
+    .Build();
+```
+
+Topics must be registered after the DI container is built (they read from the live service
+provider), using `ConfigureMessagingKafka` on `IServiceProvider`:
+
+```csharp
+app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, _) =>
+{
     sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
         topic
             .WithContract<OrderCreated>()
@@ -61,6 +67,41 @@ Resolve `IMessagingClient` from DI:
 ```csharp
 var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 ```
+
+---
+
+## Client setup (outside silo)
+
+For services that run **outside an Orleans silo** (standalone workers, HTTP APIs that only publish
+events), use `AddMessagingKafkaClient`. This registers a lean `IMessagingClient` with producer
+infrastructure only — it omits consumer grain services that require a silo.
+
+`MessagingKafkaClientOptions` exposes a single property: `IsProduceEnabled` (default `true`).
+
+```csharp
+// Via IHostBuilder
+hostBuilder.AddMessagingKafkaClient(MessageBrokerNames.DefaultBroker, builder =>
+{
+    builder.WithProducerEnabled(true);
+    // or: builder.WithOptions(opts => opts.IsProduceEnabled = true);
+});
+
+// Via IServiceCollection
+services.AddMessagingKafkaClient(MessageBrokerNames.DefaultBroker, builder =>
+{
+    builder.WithProducerEnabled(true);
+});
+```
+
+Resolve `IMessagingClient` the same way as in silo mode:
+
+```csharp
+var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
+```
+
+> **Note:** The client builder does not register `IConsumerAccessor`. Subscriptions created via
+> `client.Subscribe(...)` will not receive messages unless a silo with the Kafka provider is also
+> running.
 
 ---
 
@@ -407,27 +448,28 @@ await client.Subscribe(builder.Build());
 
 ## Multiple broker instances
 
-Register and configure separate `MessagingKafkaBuilder` instances under different service keys:
+Use `AddMessagingKafka` multiple times on the silo builder, once per service key:
 
 ```csharp
-// Register
-services.AddKeyedSingleton<MessagingKafkaBuilder>(MessageBrokerNames.DefaultBroker, ...);
-services.AddKeyedSingleton<MessagingKafkaBuilder>(MessageBrokerNames.Conduit, ...);
+// Silo registration
+siloBuilder.AddMessagingKafka(MessageBrokerNames.DefaultBroker, b =>
+    b.WithOptions(o => { o.BrokerList = new[] { "internal-kafka:9092" }; })
+);
 
-// Configure
-app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, b) =>
-{
-    b.WithOptions(o => { o.BrokerList = new[] { "internal-kafka:9092" }; }).Build();
-    sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, t => t.WithContract<OrderCreated>()...);
-});
+siloBuilder.AddMessagingKafka(MessageBrokerNames.Conduit, b =>
+    b.WithOptions(o => { o.BrokerList = new[] { "external-kafka:9092" }; })
+);
 
-app.Services.ConfigureMessagingKafka(MessageBrokerNames.Conduit, (sp, b) =>
-{
-    b.WithOptions(o => { o.BrokerList = new[] { "external-kafka:9092" }; }).Build();
-    sp.AddTopic("events", MessageBrokerNames.Conduit, t => t.WithContract<ExternalEvent>()...);
-});
+// Topic registration (post-startup)
+app.Services.ConfigureMessagingKafka(MessageBrokerNames.DefaultBroker, (sp, _) =>
+    sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, t => t.WithContract<OrderCreated>()...)
+);
 
-// Resolve the right client
-var internalClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
-var externalClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Conduit);
+app.Services.ConfigureMessagingKafka(MessageBrokerNames.Conduit, (sp, _) =>
+    sp.AddTopic("events", MessageBrokerNames.Conduit, t => t.WithContract<ExternalEvent>()...)
+);
+
+// Resolve independently
+var internalClient = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
+var externalClient = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Conduit);
 ```

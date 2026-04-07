@@ -4,7 +4,8 @@ In-memory broker implementation for Orleans.Messaging. Messages are routed entir
 
 ## Table of Contents
 
-- [Setup](#setup)
+- [Silo setup](#silo-setup)
+- [Client setup (outside silo)](#client-setup-outside-silo)
 - [Configuration](#configuration)
 - [Producing messages](#producing-messages)
 - [Subscribing](#subscribing)
@@ -16,26 +17,29 @@ In-memory broker implementation for Orleans.Messaging. Messages are routed entir
 
 ---
 
-## Setup
+## Silo setup
 
-Register the memory provider on your Orleans silo builder:
+Register the memory provider on your `ISiloBuilder` using `AddMessagingMemory`. Two forms are
+available — inline (auto-calls `Build()`) or returned builder (you call `Build()` yourself):
 
 ```csharp
-siloBuilder.ConfigureServices(services =>
+// Option A — inline, Build() is called automatically
+siloBuilder.AddMessagingMemory(MessageBrokerNames.DefaultBroker, builder =>
 {
-    var memoryBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.DefaultBroker);
-
-    memoryBuilder
+    builder
         .WithOptions(opts =>
         {
-            opts.MaxPartitionCount  = 4;
-            opts.ProducePollRateMs  = 50;
+            opts.MaxPartitionCount = 4;
+            opts.ProducePollRateMs = 50;
         })
-        .WithProducerRetries(maxRetries: 2)
-        .Build();
-
-    services.AddKeyedSingleton<MessagingMemoryBuilder>(MessageBrokerNames.DefaultBroker, memoryBuilder);
+        .WithProducerRetries(maxRetries: 2);
 });
+
+// Option B — returned builder; call Build() when ready
+var memoryBuilder = siloBuilder.AddMessagingMemory(MessageBrokerNames.DefaultBroker);
+memoryBuilder
+    .WithOptions(opts => { opts.MaxPartitionCount = 4; })
+    .Build();
 ```
 
 Resolve `IMessagingClient`:
@@ -43,6 +47,49 @@ Resolve `IMessagingClient`:
 ```csharp
 var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 ```
+
+Unlike Kafka, the memory provider requires no post-startup topic registration — queues are created
+on first use.
+
+---
+
+## Client setup (outside silo)
+
+For services running **outside an Orleans silo**, use `AddMessagingMemoryClient`. This registers a
+lean `IMessagingClient` with producer infrastructure only — it omits `IConsumerAccessor`, which
+requires a silo.
+
+`MessagingMemoryClientOptions` properties:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `MaxPartitionCount` | `Environment.ProcessorCount` | Number of virtual partitions |
+| `IsProduceEnabled` | `true` | Enable or disable the producer |
+
+```csharp
+// Via IHostBuilder
+hostBuilder.AddMessagingMemoryClient(MessageBrokerNames.DefaultBroker, builder =>
+{
+    builder.WithOptions(opts => opts.MaxPartitionCount = 2);
+    // or: builder.WithProducerEnabled(true);
+});
+
+// Via IServiceCollection
+services.AddMessagingMemoryClient(MessageBrokerNames.DefaultBroker, builder =>
+{
+    builder.WithProducerEnabled(true);
+});
+```
+
+Resolve `IMessagingClient` the same way as in silo mode:
+
+```csharp
+var client = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
+```
+
+> **Note:** The client builder does not register `IConsumerAccessor`. Subscriptions created via
+> `client.Subscribe(...)` will not receive messages unless a silo with the memory provider is also
+> running.
 
 ---
 
@@ -253,20 +300,20 @@ public override async Task OnActivateAsync(CancellationToken ct)
 
 ## Multiple broker instances
 
+Use `AddMessagingMemory` multiple times on the silo builder, once per service key:
+
 ```csharp
-// Register two independent memory brokers
-var defaultBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.DefaultBroker);
-defaultBuilder.WithOptions(o => { o.MaxPartitionCount = 4; }).Build();
+siloBuilder.AddMessagingMemory(MessageBrokerNames.DefaultBroker, b =>
+    b.WithOptions(o => { o.MaxPartitionCount = 4; })
+);
 
-var conduitBuilder = new MessagingMemoryBuilder(siloBuilder, MessageBrokerNames.Conduit);
-conduitBuilder.WithOptions(o => { o.MaxPartitionCount = 2; }).Build();
-
-services.AddKeyedSingleton(MessageBrokerNames.DefaultBroker, defaultBuilder);
-services.AddKeyedSingleton(MessageBrokerNames.Conduit, conduitBuilder);
+siloBuilder.AddMessagingMemory(MessageBrokerNames.Conduit, b =>
+    b.WithOptions(o => { o.MaxPartitionCount = 2; })
+);
 
 // Resolve independently
 var defaultClient = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
-var conduitClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Conduit);
+var conduitClient = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.Conduit);
 ```
 
 ---
@@ -281,4 +328,5 @@ var conduitClient  = sp.GetRequiredKeyedService<IMessagingClient>(MessageBrokerN
 | DLQ support | No | Yes — via `UseProcessingErrorHandlingMode(Dlq)` |
 | Security (SASL/SSL) | N/A | Configurable |
 | Message retention / offsets | None (in-process) | Managed by Kafka broker |
+| Client builder (outside silo) | `AddMessagingMemoryClient` | `AddMessagingKafkaClient` |
 | Recommended for | Tests, local dev | Production |

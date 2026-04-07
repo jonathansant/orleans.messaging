@@ -50,6 +50,6 @@
       <_Parameter1>PackageVersion</_Parameter1>
       <_Parameter2>$(PackageVersion)</_Parameter2>
     </AssemblyAttribute>
-    <None Include="$(SourceRoot)assets/package-icon.png" Pack="true" Visible="false" PackagePath="/"/>
+    <!-- <None Include="$(SourceRoot)assets/package-icon.png" Pack="true" Visible="false" PackagePath="/"/> -->
   </ItemGroup>
 </Project>

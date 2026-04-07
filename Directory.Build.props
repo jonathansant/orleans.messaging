@@ -19,7 +19,7 @@
     <Copyright>© Jonathan Sant. All rights reserved.</Copyright>
     <!-- todo: add license https://github.com/NuGet/Home/wiki/Packaging-License-within-the-nupkg-(Technical-Spec)
     <PackageProjectUrl>https://github.com/jonathansant/orleans.messaging</PackageProjectUrl> -->
-    <PackageIcon>package-icon.png</PackageIcon>
+    <!-- <PackageIcon>package-icon.png</PackageIcon> -->
     <PackageTags>Orleans C# .NET Messaging</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>
     <RepositoryUrl>https://github.com/jonathansant/orleans.messaging</RepositoryUrl>

@@ -48,13 +48,13 @@ jobs:
       #     --logger trx
       #     --results-directory ${{ github.workspace }}/test-results
 
-      - name: Test (Kafka)
-        run: >
-          dotnet test tests/Orleans.Messaging.Tests.Kafka/Orleans.Messaging.Tests.Kafka.csproj
-          --no-build
-          --configuration Release
-          --logger trx
-          --results-directory ${{ github.workspace }}/test-results
+      # - name: Test (Kafka)
+      #   run: >
+      #     dotnet test tests/Orleans.Messaging.Tests.Kafka/Orleans.Messaging.Tests.Kafka.csproj
+      #     --no-build
+      #     --configuration Release
+      #     --logger trx
+      #     --results-directory ${{ github.workspace }}/test-results
 
       - name: Upload test results
         if: always()

@@ -1,0 +1,142 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - '[0-9]+.x'
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore orleans.messaging.slnx
+
+      - name: Build
+        run: dotnet build orleans.messaging.slnx --no-restore --configuration Release
+
+      - name: Test (Memory)
+        run: >
+          dotnet test tests/Orleans.Messaging.Tests.Memory/Orleans.Messaging.Tests.Memory.csproj
+          --no-build
+          --configuration Release
+          --logger trx
+          --results-directory ${{ github.workspace }}/test-results
+
+      - name: Test (Kafka)
+        run: >
+          dotnet test tests/Orleans.Messaging.Tests.Kafka/Orleans.Messaging.Tests.Kafka.csproj
+          --no-build
+          --configuration Release
+          --logger trx
+          --results-directory ${{ github.workspace }}/test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ github.workspace }}/test-results/*.trx
+          retention-days: 7
+
+  pack:
+    name: Pack
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore orleans.messaging.slnx
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props)
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Packaging version: $VERSION"
+
+      - name: Pack Orleans.Messaging
+        run: >
+          dotnet pack Orleans.Messaging/Orleans.Messaging.csproj
+          --configuration Release
+          --output ${{ github.workspace }}/nupkgs
+
+      - name: Pack Orleans.Messaging.Kafka
+        run: >
+          dotnet pack Orleans.Messaging.Kafka/Orleans.Messaging.Kafka.csproj
+          --configuration Release
+          --output ${{ github.workspace }}/nupkgs
+
+      - name: Pack Orleans.Messaging.Memory
+        run: >
+          dotnet pack Orleans.Messaging.Memory/Orleans.Messaging.Memory.csproj
+          --configuration Release
+          --output ${{ github.workspace }}/nupkgs
+
+      - name: Pack Orleans.Messaging.SerDes
+        run: >
+          dotnet pack Orleans.Messaging.SerDes/Orleans.Messaging.SerDes.csproj
+          --configuration Release
+          --output ${{ github.workspace }}/nupkgs
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ${{ github.workspace }}/nupkgs/*.nupkg
+          retention-days: 7
+
+  publish:
+    name: Publish to NuGet.org
+    runs-on: ubuntu-latest
+    needs: pack
+    environment: nuget-release
+
+    steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ${{ github.workspace }}/nupkgs
+
+      - name: Push to NuGet.org
+        run: >
+          dotnet nuget push "${{ github.workspace }}/nupkgs/*.nupkg"
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

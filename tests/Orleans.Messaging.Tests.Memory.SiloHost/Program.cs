@@ -1,6 +1,7 @@
 using System.Net;
 using Orleans.Messaging;
 using Orleans.Messaging.Memory.Config;
+using Orleans.Messaging.Tests.Grains;
 
 var builder = Host.CreateApplicationBuilder(args);
 

@@ -1,4 +1,4 @@
-namespace Orleans.Messaging;
+namespace Orleans.Messaging.Tests.Grains;
 
 /// <summary>Well-known service keys for registered messaging broker instances.</summary>
 public static class MessageBrokerNames

@@ -164,28 +164,8 @@ var subscriptionId = await client.Subscribe<OrderCreated>(builder => builder
     .WithGrainType<IOrderProcessorGrain>()
     .WithPrimaryKey("order-processor")
     .WithSubscriptionPattern("*")
-    .WithGrainAction(async messages =>
-    {
-        foreach (var msg in messages)
-            await ProcessOrder(msg.Payload);
-    })
+    .WithGrainAction(nameof(IOrderProcessorGrain.HandleOrderCreated))
 );
-```
-
-Or point to a named method:
-
-```csharp
-builder.WithGrainAction("HandleOrderCreated")
-```
-
-Or use `[SubscriptionHandler]` on the grain interface to auto-discover the handler:
-
-```csharp
-public interface IOrderProcessorGrain : IGrainWithStringKey, IMessagingGrainContract
-{
-    [SubscriptionHandler]
-    Task HandleOrderCreated(ImmutableList<Message<OrderCreated>> messages);
-}
 ```
 
 ### Subscribe by pattern
@@ -255,7 +235,6 @@ await client.Unsubscribe<OrderCreated>(new TopicSubscription(
 // Interface
 public interface IOrderProcessorGrain : IGrainWithStringKey, IMessagingGrainContract
 {
-    [SubscriptionHandler]
     Task HandleOrderCreated(ImmutableList<Message<OrderCreated>> messages);
 }
 
@@ -279,20 +258,20 @@ public class OrderProcessorGrain : Grain, IOrderProcessorGrain
 }
 ```
 
-Subscribe inside `OnActivateAsync` using the `SubscriptionClientExtensions` helper:
+Subscribe inside `OnActivateAsync`:
 
 ```csharp
 public override async Task OnActivateAsync(CancellationToken ct)
 {
     var client = ServiceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 
-    var input = this.CreateSubscriptionConfig<OrderCreated, IOrderProcessorGrain>(
-        queueName:  "orders",
-        pattern:    "*",
-        serviceKey: MessageBrokerNames.DefaultBroker
-    ).Build();
-
-    await client.Subscribe(input);
+    await client.Subscribe<OrderCreated>(b => b
+        .WithQueueName("orders")
+        .WithGrainType<IOrderProcessorGrain>()
+        .WithPrimaryKey(this.GetPrimaryKeyString())
+        .WithSubscriptionPattern("*")
+        .WithGrainAction(HandleOrderCreated)
+    );
 }
 ```
 

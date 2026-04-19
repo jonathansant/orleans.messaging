@@ -235,29 +235,9 @@ var subscriptionId = await client.Subscribe<OrderCreated>(builder => builder
     .WithQueueName("orders")
     .WithGrainType<IOrderProcessorGrain>()
     .WithPrimaryKey("order-processor")
-    .WithSubscriptionPattern("*")            // subscription key / pattern
-    .WithGrainAction(async messages =>
-    {
-        foreach (var msg in messages)
-            await ProcessOrder(msg.Payload);
-    })
+    .WithSubscriptionPattern("*")
+    .WithGrainAction(nameof(IOrderProcessorGrain.HandleOrderCreated))
 );
-```
-
-Alternatively, point to a method by name:
-
-```csharp
-builder.WithGrainAction("HandleOrderCreated")
-```
-
-Or use `[SubscriptionHandler]` on the grain interface method to auto-discover it (no `.WithGrainAction()` needed):
-
-```csharp
-public interface IOrderProcessorGrain : IGrainWithStringKey, IMessagingGrainContract
-{
-    [SubscriptionHandler]
-    Task HandleOrderCreated(ImmutableList<Message<OrderCreated>> messages);
-}
 ```
 
 ### Subscribe by pattern
@@ -389,7 +369,6 @@ topic.WithSerializer<MySerializer<OrderCreated>>();
 // Interface
 public interface IOrderProcessorGrain : IGrainWithStringKey, IMessagingGrainContract
 {
-    [SubscriptionHandler]
     Task HandleOrderCreated(ImmutableList<Message<OrderCreated>> messages);
 }
 
@@ -421,27 +400,14 @@ public override async Task OnActivateAsync(CancellationToken ct)
 {
     var client = ServiceProvider.GetRequiredKeyedService<IMessagingClient>(MessageBrokerNames.DefaultBroker);
 
-    await this.CreateSubscriptionConfig<OrderCreated, IOrderProcessorGrain>(
-            queueName: "orders",
-            pattern: "*",
-            serviceKey: MessageBrokerNames.DefaultBroker
-        )
+    await client.Subscribe<OrderCreated>(b => b
+        .WithQueueName("orders")
+        .WithGrainType<IOrderProcessorGrain>()
+        .WithPrimaryKey(this.GetPrimaryKeyString())
         .WithSubscriptionPattern("*")
-        .Build()
-        |> (input => client.Subscribe(input));
+        .WithGrainAction(HandleOrderCreated)
+    );
 }
-```
-
-Or use the `SubscriptionClientExtensions` helper:
-
-```csharp
-var builder = this.CreateSubscriptionConfig<OrderCreated, IOrderProcessorGrain>(
-    queueName:  "orders",
-    pattern:    "*",
-    serviceKey: MessageBrokerNames.DefaultBroker
-);
-
-await client.Subscribe(builder.Build());
 ```
 
 ---

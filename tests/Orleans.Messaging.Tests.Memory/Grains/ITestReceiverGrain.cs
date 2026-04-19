@@ -4,7 +4,6 @@ namespace Orleans.Messaging.Tests.Memory.Grains;
 
 public interface ITestReceiverGrain : IGrainWithStringKey
 {
-	[SubscriptionHandler]
 	Task HandleMessages(ImmutableList<Message<TestMessage>> messages);
 
 	Task<List<Message<TestMessage>>> GetReceivedMessages();

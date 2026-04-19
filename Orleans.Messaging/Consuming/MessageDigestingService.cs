@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Orleans.Messaging.Subscription;
 using Orleans.Messaging.Utils;
+using PatternMatching;
 using GrainFactoryExtensions = Orleans.Messaging.Subscription.GrainFactoryExtensions;
 
 namespace Orleans.Messaging.Consuming;
@@ -45,11 +46,12 @@ internal class DigestingUtilityService(
 		if (_subscriptionTable.TryGetValue(message.Key, out var patternOptions) && patternOptions.PatternType == PatternType.Exact)
 			subscriptions = new KeyValuePair<string, PatternOptions>(message.Key, patternOptions).ToSingleList();
 		else
-			subscriptions = _subscriptionTable.Where(x => x.Value.PatternType switch
+			subscriptions = _subscriptionTable.Where(pattern => pattern.Value.PatternType switch
 					{
 						PatternType.Exact => false,
-						PatternType.Substring => message.Key.Contains(x.Key),
-						_ => _subscriptionRegexes[x.Key].IsMatch(message.Key)
+						PatternType.Substring => message.Key.Contains(pattern.Key),
+						PatternType.Wildcard => WildcardMatcher.Test(pattern.Key, message.Key),
+						_ => _subscriptionRegexes[pattern.Key].IsMatch(message.Key)
 					}
 				)
 				.ToList();
@@ -70,7 +72,13 @@ internal class DigestingUtilityService(
 
 		_subscriptionTable = subscriptionTable;
 		foreach (var kvp in _subscriptionTable)
-			_subscriptionRegexes.TryAdd(kvp.Key, new(kvp.Key, RegexOptions.Compiled));
+			switch (kvp.Value.PatternType)
+			{
+				case PatternType.Regex:
+					_subscriptionRegexes.TryAdd(kvp.Key, new(kvp.Key, RegexOptions.Compiled));
+
+					break;
+			}
 	}
 
 	public async ValueTask<ISubscriptionGrain> GetSubscriptionGrain(string queue, string subscriptionKey)

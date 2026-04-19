@@ -63,6 +63,8 @@ jobs:
     name: Pack
     runs-on: ubuntu-latest
     needs: build
+    outputs:
+      version: ${{ steps.version.outputs.value }}
 
     steps:
       - name: Checkout
@@ -114,6 +116,24 @@ jobs:
           name: nuget-packages
           path: ${{ github.workspace }}/nupkgs/*.nupkg
           retention-days: 7
+
+  tag:
+    name: Tag Release
+    runs-on: ubuntu-latest
+    needs: pack
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ needs.pack.outputs.version }}"
+          git push origin "v${{ needs.pack.outputs.version }}"
 
   publish:
     name: Publish to NuGet.org

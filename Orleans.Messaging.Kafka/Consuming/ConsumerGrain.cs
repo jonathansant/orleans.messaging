@@ -1,15 +1,15 @@
+using System.Collections.Immutable;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Text;
 using Confluent.Kafka;
+using Orleans.Concurrency;
 using Orleans.Messaging.Consuming;
 using Orleans.Messaging.Kafka.Config;
 using Orleans.Messaging.Kafka.Producing;
 using Orleans.Messaging.Kafka.Serialization;
 using Orleans.Messaging.SerDes;
 using Orleans.Messaging.Subscription;
-using Orleans.Concurrency;
-using System.Collections.Immutable;
-using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Text;
 
 namespace Orleans.Messaging.Kafka.Consuming;
 
@@ -31,24 +31,24 @@ public interface IConsumerGrain : IGrainWithStringKey
 
 public sealed class ConsumerGrain : Grain, IConsumerGrain
 {
-	private Type _dlqProducerGrainByteType;
+	private readonly IDigestingUtilityService _digestingService;
+	private readonly Message<byte[]> _emptyByteMessage = new();
 	private readonly ConsumerGrainKey _keyData;
-	private IConsumer<byte[], byte[]> _consumer;
 
-	private TopicConfig _topicConfig;
+	private readonly ILogger<ConsumerGrain> _logger;
+	private readonly MessagingKafkaOptions _options;
+	private readonly IMessagingKafkaRuntimeOptionsService _runtimeOptionsService;
+	private readonly ITopicSerializerResolver _serializerResolver;
+
+	private readonly IPersistentState<ConsumerGrainState> _store;
+	private IConsumer<byte[], byte[]> _consumer;
+	private Type _dlqProducerGrainByteType;
+	private Message _emptyMessage;
 
 	private IMessageSerializer _messageSerializer;
 	private bool _shouldKeepBytePayload;
-	private Message _emptyMessage;
-	private readonly Message<byte[]> _emptyByteMessage = new();
 
-	private readonly IPersistentState<ConsumerGrainState> _store;
-
-	private readonly ILogger<ConsumerGrain> _logger;
-	private readonly IDigestingUtilityService _digestingService;
-	private readonly MessagingKafkaOptions _options;
-	private readonly ITopicSerializerResolver _serializerResolver;
-	private readonly IMessagingKafkaRuntimeOptionsService _runtimeOptionsService;
+	private TopicConfig _topicConfig;
 
 	public ConsumerGrain(
 		ILogger<ConsumerGrain> logger,
@@ -71,6 +71,34 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 		);
 	}
 
+	public async Task Initialize()
+	{
+		var subscriptionList = await GrainFactory.GetSubscriptionIndexGrain(
+				_keyData.ServiceKey,
+				_keyData.TopicId
+			)
+			.RegisterConsumer(_keyData.TopicId, _keyData.Partition);
+
+		UpdateSubscriptions(subscriptionList);
+	}
+
+	public Task ConsumeAndPublish()
+		=> Consume();
+
+	public ValueTask RefreshSubscriptionList(Dictionary<string, PatternOptions> subscriptions)
+	{
+		UpdateSubscriptions(subscriptions);
+
+		return ValueTask.CompletedTask;
+	}
+
+	public ValueTask Rebalance()
+	{
+		DeactivateOnIdle();
+
+		return ValueTask.CompletedTask;
+	}
+
 	public override async Task OnActivateAsync(CancellationToken cancellationToken)
 	{
 		await base.OnActivateAsync(cancellationToken);
@@ -90,29 +118,6 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 		}
 	}
 
-	public async Task Initialize()
-	{
-		var subscriptionList = await GrainFactory.GetSubscriptionIndexGrain(_keyData.ServiceKey, _keyData.TopicId)
-			.RegisterConsumer(_keyData.TopicId, _keyData.Partition);
-
-		UpdateSubscriptions(subscriptionList);
-	}
-
-	public Task ConsumeAndPublish()
-		=> Consume();
-
-	public ValueTask RefreshSubscriptionList(Dictionary<string, PatternOptions> subscriptions)
-	{
-		UpdateSubscriptions(subscriptions);
-		return ValueTask.CompletedTask;
-	}
-
-	public ValueTask Rebalance()
-	{
-		DeactivateOnIdle();
-		return ValueTask.CompletedTask;
-	}
-
 	private async Task Consume()
 	{
 		if (!_digestingService.HasSubscriptions)
@@ -124,6 +129,7 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 		for (var i = 0; i < topicConfigBatchSize; i++)
 		{
 			var consumeResult = _consumer.Consume(_options.PollTimeout);
+
 			if (consumeResult == null)
 				break;
 
@@ -148,7 +154,7 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 				{
 					LogMessagePush(subscriptionMessages);
 
-					var subscriptionGrain =  await _digestingService.GetSubscriptionGrain(_keyData.TopicId, subscriptionMessages.Key);
+					var subscriptionGrain = await _digestingService.GetSubscriptionGrain(_keyData.TopicId, subscriptionMessages.Key);
 					await subscriptionGrain.Push(messages);
 
 					if (_topicConfig.ProcessingFailedHandlingMode is ProcessingFailedHandlingMode.AckOnComplete)
@@ -157,7 +163,6 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 				catch (SubscriptionMessageProcessingException ex)
 				{
 					foreach (var meta in ex.SubscriberFailureMetas)
-					{
 						_logger.LogError(
 							meta.Exception,
 							"Failed to process message batch for subscriber {subscriber} on queue with name: {queueName} due to: '{exceptionMessage}' messageIds: {messageIds}",
@@ -166,7 +171,6 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 							meta.Exception.Message,
 							meta.MessageIds
 						);
-					}
 
 					subscriptionMessages.Value.ForEach(x => failedMessages.TryAdd(x.Message.MessageId, x.RawMessage));
 				}
@@ -258,10 +262,10 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 	{
 		try
 		{
-			var message = await ToMessage(consumeResult, shouldDeserialize: true, skipMessageTransformation: false);
+			var message = await ToMessage(consumeResult, true, false);
 			Message<byte[]> byteMessage = null;
 			if (_topicConfig.ProcessingFailedHandlingMode is ProcessingFailedHandlingMode.Dlq)
-				byteMessage = (Message<byte[]>)(await ToMessage(consumeResult, false, skipMessageTransformation: true));
+				byteMessage = (Message<byte[]>)await ToMessage(consumeResult, false, true);
 
 			_logger.PulledMessage(message.MessageId, message.Key, string.Join(',', message.Headers));
 
@@ -279,12 +283,13 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 				_topicConfig.ProcessingFailedHandlingMode
 			);
 
-			var dlqMessage = (Message<byte[]>)(await ToMessage(
+			var dlqMessage = (Message<byte[]>)await ToMessage(
 				consumeResult,
-				shouldDeserialize: false,
-				skipMessageTransformation: true
-			));
+				false,
+				true
+			);
 			await HandleProcessingError(dlqMessage.ToSingleList());
+
 			throw;
 		}
 	}
@@ -320,6 +325,7 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 
 		if (!skipMessageTransformation)
 			_topicConfig.MessageTransformer?.Invoke(message);
+
 		return message;
 	}
 
@@ -359,10 +365,11 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 			_keyData.ServiceKey,
 			_topicConfig.DeadLetterQueueName,
 			message.Key,
-			isDlq: isByteBody
+			isByteBody
 		);
 
 		var producerGrain = (IProducerGrain)GrainFactory.GetGrain(_dlqProducerGrainByteType, grainKey);
+
 		return producerGrain.Produce(message.AsImmutable());
 	}
 
@@ -379,7 +386,6 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 	private async Task HandleProcessingError(List<Message<byte[]>> messages)
 	{
 		foreach (var message in messages)
-		{
 			switch (_topicConfig.ProcessingFailedHandlingMode)
 			{
 				case ProcessingFailedHandlingMode.AckOnComplete or ProcessingFailedHandlingMode.Ignore:
@@ -390,6 +396,7 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 						message.Key,
 						_topicConfig.ProcessingFailedHandlingMode
 					);
+
 					break;
 				case ProcessingFailedHandlingMode.Dlq:
 					{
@@ -402,10 +409,10 @@ public sealed class ConsumerGrain : Grain, IConsumerGrain
 						);
 
 						await SendOneToDlq(message);
+
 						break;
 					}
 			}
-		}
 	}
 }
 

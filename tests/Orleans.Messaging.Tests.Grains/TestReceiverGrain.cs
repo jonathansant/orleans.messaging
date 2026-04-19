@@ -1,11 +1,9 @@
 using System.Collections.Concurrent;
-using Orleans.Messaging.Subscription;
 
 namespace Orleans.Messaging.Tests.Grains;
 
 public interface ITestReceiverGrain : IGrainWithStringKey
 {
-	[SubscriptionHandler]
 	Task HandleMessages(ImmutableList<Message<TestMessage>> messages);
 
 	Task<List<Message<TestMessage>>> GetReceivedMessages();

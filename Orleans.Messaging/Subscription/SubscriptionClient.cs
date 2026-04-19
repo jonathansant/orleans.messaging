@@ -114,17 +114,10 @@ public class SubscriptionBuilder<TMessage>
 		if (_primaryKey is null)
 			throw new InvalidOperationException("Primary key must be specified.");
 
-		MethodInfo? attributeMethod = null;
 		if (_method is null && _methodStr is null)
-		{
-			attributeMethod = _grainType.GetInterfaceMethods()
-					?.FindFirst(x => x.HasCustomAttribute<SubscriptionHandlerAttribute>())
-				;
+			throw new InvalidOperationException("Grain method must be specified.");
 
-			if (attributeMethod is null)
-				throw new InvalidOperationException("Grain method must be specified.");
-		}
-		else if (_method is not null)
+		if (_method is not null)
 		{
 			if (_method.GetType() != DelegateType)
 				throw new InvalidOperationException("Grain method must be specified.");
@@ -160,7 +153,7 @@ public class SubscriptionBuilder<TMessage>
 			GrainPrimaryKey = _primaryKey,
 			QueueName = _queueName,
 			KeyPattern = _subscriptionKey,
-			MethodName = _methodStr ?? attributeMethod?.Name,
+			MethodName = _methodStr!,
 			PatternOptions = _patternOptions,
 		};
 
@@ -183,6 +176,7 @@ public enum PatternType
 	Regex,
 	Exact,
 	Substring,
+	Wildcard
 }
 
 /// <param name="ServiceKey">e.g. Default, External (<see cref="MessageBrokerNames"/>)</param>

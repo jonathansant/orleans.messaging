@@ -124,7 +124,12 @@ public class ConsumerGrainService : GrainService, IConsumerGrainService
 					{
 						if (config.topic.IsPartitioned)
 							return config.meta.Partitions
-								.Select(x => _grainFactory.GetConsumerGrain(serviceKey, config.topic.Name, x.PartitionId.ToString()))
+								.Select(x => _grainFactory.GetConsumerGrain(
+										serviceKey,
+										config.topic.Name,
+										x.PartitionId.ToString()
+									)
+								)
 								.ForEachAsync(async consumerGrain => await consumerGrain.Initialize());
 
 						return _grainFactory.GetConsumerGrain(serviceKey, config.topic.Name, Unpartitioned).Initialize();

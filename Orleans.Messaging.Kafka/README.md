@@ -10,6 +10,7 @@ Kafka broker implementation for Orleans.Messaging. Wraps [Confluent.Kafka](https
   - [Broker options](#broker-options)
   - [Security](#security)
   - [Topic configuration](#topic-configuration)
+  - [Message transformer](#message-transformer)
 - [Producing messages](#producing-messages)
 - [Subscribing](#subscribing)
   - [Subscribe by pattern](#subscribe-by-pattern)
@@ -199,6 +200,35 @@ sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
 | `Consumer` | Topic is only consumed |
 | `Producer` | Topic is only produced to |
 | `InOut` | Topic is both consumed and produced to |
+
+### Message transformer
+
+`WithConsumerMessageTransformer` registers a callback that mutates each consumed `Message` **in-place** before it is dispatched to subscribers. Use it to enrich, normalise, or redact message data at the topic level.
+
+```csharp
+// Direct delegate — no DI dependencies
+sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
+    topic
+        .WithContract<OrderCreated>()
+        .WithConsumerMessageTransformer(msg =>
+        {
+            msg.Headers["processed-at"] = DateTimeOffset.UtcNow.ToString("O");
+        })
+);
+
+// DI factory overload — resolved once at configuration time
+sp.AddTopic("orders", MessageBrokerNames.DefaultBroker, topic =>
+    topic
+        .WithContract<OrderCreated>()
+        .WithConsumerMessageTransformer(sp =>
+        {
+            var tenantResolver = sp.GetRequiredService<ITenantResolver>();
+            return msg => msg.Headers["tenant"] = tenantResolver.Resolve(msg.Key);
+        })
+);
+```
+
+> **Note:** The transformer is skipped for messages that bypass normal processing (e.g. DLQ re-routing). Only one transformer can be registered per topic; calling `WithConsumerMessageTransformer` twice replaces the previous one.
 
 ---
 

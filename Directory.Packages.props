@@ -1,27 +1,27 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <OrleansVersion>9.2.1</OrleansVersion>
+    <OrleansVersion>10.1.0</OrleansVersion>
     <Sketch7FluentlyHttpClient>..\..\..\..\Sketch7.FluentlyHttpClient</Sketch7FluentlyHttpClient>
     <!-- <FluentlyHttpClientVersion>link</FluentlyHttpClientVersion> -->
   </PropertyGroup>
   <ItemGroup>
     <!-- system -->
-    <PackageVersion Include="Microsoft.Orleans.Runtime" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.Runtime" Version="$(OrleansVersion)" />
     <PackageVersion Include="System.Data.HashFunction.xxHash" Version="2.0.0" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <!-- microsoft packages -->
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
     <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
     <PackageVersion Include="System.Linq.Dynamic.Core" Version="1.7.1" />
     <!-- 3rd party -->
@@ -50,7 +50,6 @@
     <PackageVersion Include="Microsoft.Orleans.Reminders" Version="$(OrleansVersion)" />
     <PackageVersion Include="Microsoft.Orleans.Server" Version="$(OrleansVersion)" />
     <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(OrleansVersion)" />
-    <PackageVersion Include="OrleansDashboard.Core" Version="8.2.0" />
     <PackageVersion Include="AWSSDK.CloudWatchLogs" Version="4.0.8.1" />
     <PackageVersion Include="AWSSDK.Core" Version="4.0.0.29" />
     <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.6.3" />
@@ -68,8 +67,8 @@
     <!-- internal - open source -->
     <PackageVersion Include="FluentlyHttpClient" Version="4.1.1" />
     <!-- testing -->
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.2.1" />
-    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="10.1.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

@@ -17,9 +17,12 @@ public static partial class GrainFactoryExtensions
 		string serviceKey,
 		string queueName,
 		string partitioningKey
-	) => grainFactory.GetGrain<IMemoryProducerGrain<TMessage>>(GenerateProducerGrainKey(serviceKey, queueName, partitioningKey));
+	) => grainFactory.GetGrain<IMemoryProducerGrain<TMessage>>(MemoryProducerGrainKeys.Generate(serviceKey, queueName, partitioningKey));
+}
 
-	public static string GenerateProducerGrainKey(string serviceKey, string queueName, string partitioningKey)
+public static class MemoryProducerGrainKeys
+{
+	public static string Generate(string serviceKey, string queueName, string partitioningKey)
 		=> $"orleansMessagingMemoryProducer/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(partitioningKey)}";
 }
 

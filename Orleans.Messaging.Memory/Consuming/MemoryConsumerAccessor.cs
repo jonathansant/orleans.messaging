@@ -5,7 +5,7 @@ using Orleans.Messaging.Memory.Config;
 using Orleans.Messaging.Memory.Producing;
 using Orleans.Messaging.Memory.Utilities;
 using Orleans.Messaging.Subscription;
-using GrainFactoryExtensions = Orleans.Messaging.Memory.Producing.GrainFactoryExtensions;
+using Orleans.Messaging.Memory.Producing;
 
 namespace Orleans.Messaging.Memory.Consuming;
 
@@ -35,9 +35,8 @@ public class MemoryConsumerAccessor : IConsumerAccessor
 	{
 		// todo: consider renaming this
 		var producerGrainType = await _runtimeOptionsService.GetProducerGrainType(queue);
-		var hashedPartition = SimpleRingHash.Calculate(_options.MaxPartitionCount, partition).ToString();
 
-		var grainKey = GrainFactoryExtensions.GenerateProducerGrainKey(_serviceKey, queue, hashedPartition);
+		var grainKey = MemoryProducerGrainKeys.Generate(_serviceKey, queue, partition);
 
 		var refreshTask = ((IMemoryProducerGrain)_grainFactory.GetGrain(producerGrainType, grainKey))
 			.RefreshSubscriptionList(patterns.AsImmutable());

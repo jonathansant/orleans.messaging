@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Orleans.Messaging.Subscription;
 using Orleans.Messaging.Utils;
 using PatternMatching;
-using GrainFactoryExtensions = Orleans.Messaging.Subscription.GrainFactoryExtensions;
+using Orleans.Messaging.Subscription;
 
 namespace Orleans.Messaging.Consuming;
 
@@ -83,11 +83,7 @@ internal class DigestingUtilityService(
 
 	public async ValueTask<ISubscriptionGrain> GetSubscriptionGrain(string queue, string subscriptionKey)
 	{
-		var grainKey = GrainFactoryExtensions.GenerateSubscriptionGrainKey(
-			serviceKey,
-			queueName,
-			subscriptionKey
-		);
+		var grainKey = SubscriptionGrainKeys.Generate(serviceKey, queueName, subscriptionKey);
 
 		var subscriptionGrainType = await runtimeOptionsService.GetSubscriptionGrainType(queue);
 		var subscriptionGrain = (ISubscriptionGrain)grainFactory.GetGrain(subscriptionGrainType, grainKey);

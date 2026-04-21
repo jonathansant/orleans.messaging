@@ -29,6 +29,7 @@ public class UnsubscribeTests
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		// Produce before unsubscribe - should be received
@@ -59,6 +60,7 @@ public class UnsubscribeTests
 			.WithPrimaryKey(grainKey)
 			.WithQueueName(Topic)
 			.WithSubscriptionPattern(messageKey, o => o.PatternType = PatternType.Exact)
+			.WithGrainAction(nameof(ITestReceiverGrain.HandleMessages))
 		);
 
 		await _client.Produce<TestMessage>(Topic, messageKey, new TestMessage("before", "test"));

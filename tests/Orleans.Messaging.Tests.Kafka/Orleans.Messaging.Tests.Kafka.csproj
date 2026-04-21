@@ -29,8 +29,4 @@
     <ProjectReference Include="..\Orleans.Messaging.Tests.Grains\Orleans.Messaging.Tests.Grains.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Grains\" />
-  </ItemGroup>
-
 </Project>

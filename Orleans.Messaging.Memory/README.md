@@ -170,7 +170,7 @@ var subscriptionId = await client.Subscribe<OrderCreated>(builder => builder
 
 ### Subscribe by pattern
 
-Filter messages by key using `WithSubscriptionPattern`. Three modes are supported via `PatternType`:
+Filter messages by key using `WithSubscriptionPattern`. Four modes are supported via `PatternType`:
 
 ```csharp
 // Exact match (default)
@@ -181,13 +181,18 @@ builder.WithSubscriptionPattern("region-us", opts =>
     opts.PatternType = PatternType.Substring
 );
 
+// Wildcard — supports * (any sequence) and ? (single character)
+builder.WithSubscriptionPattern("order-*", opts =>
+    opts.PatternType = PatternType.Wildcard
+);
+
 // Regex
 builder.WithSubscriptionPattern(@"^order\.\d+$", opts =>
     opts.PatternType = PatternType.Regex
 );
 ```
 
-`PatternType` values: `Exact`, `Substring`, `Regex`
+`PatternType` values: `Exact`, `Substring`, `Wildcard`, `Regex`
 
 Throttle delivery using `SubscriptionDelayOptions`:
 

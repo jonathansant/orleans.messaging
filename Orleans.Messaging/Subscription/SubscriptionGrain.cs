@@ -14,9 +14,12 @@ public static partial class GrainFactoryExtensions
 		string serviceKey,
 		string queueName,
 		string key
-	) => grainFactory.GetGrain<ISubscriptionGrain<TMessage>>(GenerateSubscriptionGrainKey(serviceKey, queueName, key));
+	) => grainFactory.GetGrain<ISubscriptionGrain<TMessage>>(SubscriptionGrainKeys.Generate(serviceKey, queueName, key));
+}
 
-	public static string GenerateSubscriptionGrainKey(string serviceKey, string queueName, string pattern)
+public static class SubscriptionGrainKeys
+{
+	public static string Generate(string serviceKey, string queueName, string pattern)
 		=> $"orleansMessagingSubscription/{serviceKey}/{queueName}/{HttpUtility.UrlEncode(pattern)}";
 }
 
